@@ -50,6 +50,8 @@ if __name__ == "__main__":
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
 
+    cfg.word = cfg.word[::-1]
+
     print("preprocessing")
     preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.level_of_cc)
 

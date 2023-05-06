@@ -142,6 +142,7 @@ def get_letter_ids(letter, word, shape_groups):
 def combine_word(word, letter, font, experiment_dir):
     word_svg_scaled = f"./code/data/init/{font}_{word}_scaled.svg"
     canvas_width_word, canvas_height_word, shapes_word, shape_groups_word = pydiffvg.svg_to_scene(word_svg_scaled)
+
     letter_ids = []
     for l in letter:
         letter_ids += get_letter_ids(l, word, shape_groups_word)
@@ -156,7 +157,7 @@ def combine_word(word, letter, font, experiment_dir):
 
     svg_result = os.path.join(experiment_dir, "output-svg", "output.svg")
     canvas_width, canvas_height, shapes, shape_groups = pydiffvg.svg_to_scene(svg_result)
-
+    
     out_w_min, out_w_max = min([torch.min(p.points[:, 0]) for p in shapes]), max(
         [torch.max(p.points[:, 0]) for p in shapes])
     out_h_min, out_h_max = min([torch.min(p.points[:, 1]) for p in shapes]), max(

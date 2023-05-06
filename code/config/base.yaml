@@ -43,4 +43,17 @@ conformal_0.5_dist_pixel_100_kernel201:
       use_conformal_loss: true
       angeles_w: 0.5
 
+Arabic-Ruqaa:
+  parent_config: baseline
+  level_of_cc: 1
+  num_iter: 200
+  loss:
+    tone:
+      use_tone_loss: true
+      dist_loss_weight: 100
+      pixel_dist_kernel_blur: 201
+      pixel_dist_sigma: 30
+    conformal:
+      use_conformal_loss: true
+      angeles_w: 0.5
 

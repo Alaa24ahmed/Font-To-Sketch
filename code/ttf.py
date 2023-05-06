@@ -102,7 +102,8 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
     ''' Load a font and convert the outlines for a given string to cubic bezier curves,
         if merge is True, simply return a list of all bezier curves,
         otherwise return a list of lists with the bezier curves for each glyph'''
-
+    print(font)
+    
     face = ft.Face(font)
     face.set_char_size(64 * size)
     slot = face.glyph

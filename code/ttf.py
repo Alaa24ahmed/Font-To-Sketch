@@ -120,10 +120,13 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
 
     x = 0
     beziers = []
+    chars = []
     previous = 0
-    print(f"Len GInfo: {len(glyph_infos)}")
+    print(f"Len GInfo: {len(glyph_infos)} | Text: {len(txt)}")
     for i in range(len(glyph_infos)):
-        c = txt[i]
+        index = glyph_infos[i].cluster
+        c = txt[index]
+        chars += [c]
         glyph_index = glyph_infos[i].codepoint
         face.load_glyph(glyph_index)
         # face.load_char(c, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
@@ -150,7 +153,7 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
         x += (slot.advance.x + kerning.x) * spacing
         previous = c
 
-    return beziers
+    return beziers, chars
 
 
 def bezier_chain_to_commands(C, closed=True):
@@ -198,7 +201,7 @@ def write_letter_svg(c, header, fontname, beziers, subdivision_thresh, dest_path
 def font_string_to_svgs(dest_path, font, txt, size=30, spacing=1.0, target_control=None, subdivision_thresh=None):
 
     fontname = os.path.splitext(os.path.basename(font))[0]
-    glyph_beziers = font_string_to_beziers(font, txt, size, spacing, merge=False, target_control=target_control)
+    glyph_beziers, chars = font_string_to_beziers(font, txt, size, spacing, merge=False, target_control=target_control)
     if not os.path.isdir(dest_path):
         os.mkdir(dest_path)
     # Compute boundig box
@@ -217,7 +220,8 @@ def font_string_to_svgs(dest_path, font, txt, size=30, spacing=1.0, target_contr
 
     svg_all = header
 
-    for i, (c, beziers) in enumerate(zip(txt, glyph_beziers)):
+    print(f"Len Glyph Bezier: {len(glyph_beziers)} | Chars: {len(chars)}")
+    for i, (c, beziers) in enumerate(zip(chars, glyph_beziers)):
         print(f"==== {c} ====")
         fname, path = write_letter_svg(c, header, fontname, beziers, subdivision_thresh, dest_path)
 

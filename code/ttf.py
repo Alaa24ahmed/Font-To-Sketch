@@ -6,6 +6,8 @@ import freetype as ft
 import pydiffvg
 import torch
 import save_svg
+import vharfbuzz as hb
+
 
 device = torch.device("cuda" if (
         torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu")
@@ -104,6 +106,14 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
         otherwise return a list of lists with the bezier curves for each glyph'''
     print(font)
     
+    vhb = hb.Vharfbuzz(font)
+    buf = vhb.shape(txt, {"features": {"kern": True, "liga": True}})
+
+    buf.guess_segment_properties()
+
+    glyph_infos = buf.glyph_infos
+    glyph_positions = buf.glyph_positions
+
     face = ft.Face(font)
     face.set_char_size(64 * size)
     slot = face.glyph
@@ -111,8 +121,12 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
     x = 0
     beziers = []
     previous = 0
-    for c in txt:
-        face.load_char(c, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
+    print(f"Len GInfo: {len(glyph_infos)}")
+    for i in range(len(glyph_infos)):
+        c = txt[i]
+        glyph_index = glyph_infos[i].codepoint
+        face.load_glyph(glyph_index)
+        # face.load_char(c, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
         bez = glyph_to_cubics(face, x)
 
         # Check number of control points if desired

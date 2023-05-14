@@ -46,7 +46,7 @@ conformal_0.5_dist_pixel_100_kernel201:
 Arabic-Ruqaa:
   parent_config: baseline
   level_of_cc: 1
-  num_iter: 200
+  num_iter: 500
   loss:
     tone:
       use_tone_loss: true

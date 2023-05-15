@@ -67,7 +67,7 @@ def preprocess(font, word, letter, level_of_cc=1):
         target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
 
     print(f"======= {font} =======")
-    font_path = f"code/data/fonts/{font}.ttf"
+    font_path = f"code/data/arabic-fonts/{font}.ttf"
     init_path = f"code/data/init"
     subdivision_thresh = None
     chars = font_string_to_svgs(init_path, font_path, word, target_control=target_cp,
@@ -82,8 +82,6 @@ def preprocess(font, word, letter, level_of_cc=1):
         normalize_letter_size(init_path, font_path, letter, chars)
 
     print("Done preprocess")
-    exit()
-
 
 def get_data_augs(cut_size):
     augmentations = []

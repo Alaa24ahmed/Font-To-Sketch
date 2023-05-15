@@ -1,4 +1,6 @@
 *.pyc
+.DS_Store
 output
-code/data/init
 diffvg
+code/data/init
+code/data/arabic-fonts/*.ttf

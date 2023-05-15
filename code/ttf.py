@@ -52,9 +52,9 @@ def fix_single_svg(svg_path, all_word=False):
     save_svg.save_svg(output_path, target_canvas_width, target_canvas_height, shapes, shape_groups)
 
 
-def normalize_letter_size(dest_path, font, txt):
+def normalize_letter_size(dest_path, font, txt, chars):
     fontname = os.path.splitext(os.path.basename(font))[0]
-    for i, c in enumerate(txt):
+    for i, c in enumerate(chars):
         fname = f"{dest_path}/{fontname}_{c}.svg"
         fname = fname.replace(" ", "_")
         fix_single_svg(fname)
@@ -64,7 +64,7 @@ def normalize_letter_size(dest_path, font, txt):
     fix_single_svg(fname, all_word=True)
 
 
-def glyph_to_cubics(face, x=0):
+def glyph_to_cubics(face, x=0, y=0):
     ''' Convert current font face glyph to cubic beziers'''
 
     def linear_to_cubic(Q):
@@ -78,7 +78,7 @@ def glyph_to_cubics(face, x=0):
                 Q[2]]
 
     beziers = []
-    pt = lambda p: np.array([p.x + x, -p.y])  # Flipping here since freetype has y-up
+    pt = lambda p: np.array([p.x + x, -p.y - y])  # Flipping here since freetype has y-up
     last = lambda: beziers[-1][-1]
 
     def move_to(a, beziers):
@@ -99,6 +99,22 @@ def glyph_to_cubics(face, x=0):
     beziers = [np.array(C).astype(float) for C in beziers]
     return beziers
 
+# def handle_ligature(glyph_infos, glyph_positions):
+#     combined_advance = sum(pos.x_advance for pos in glyph_positions)
+#     first_x_offset = glyph_positions[0].x_offset
+
+#     combined_advance = x_adv_1 + x_adv_2
+
+
+
+
+#     # Adjust the x_offset values based on the difference between the first glyph's x_offset and the combined_advance
+#     for pos in glyph_positions:
+#         pos.x_offset += combined_advance - pos.x_advance - first_x_offset
+
+#     # Render the ligature using the adjusted glyph positions
+#     render_glyphs(glyph_infos, glyph_positions)
+
 
 def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_control=None):
     ''' Load a font and convert the outlines for a given string to cubic bezier curves,
@@ -118,19 +134,35 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
     face.set_char_size(64 * size)
     slot = face.glyph
 
-    x = 0
+    glyph_count = {glyph_infos[i].cluster: 0 for i in range(len(glyph_infos))}
+    x, y = 0, 0
     beziers = []
     chars = []
-    previous = 0
+    pindex = -1
     print(f"Len GInfo: {len(glyph_infos)} | Text: {len(txt)}")
-    for i in range(len(glyph_infos)):
-        index = glyph_infos[i].cluster
-        c = txt[index]
+    # glyph_infos = glyph_infos[::-1]
+    # glyph_positions = glyph_positions[::-1]
+    poffset = (0, 0)
+    padvance = (0, 0)
+    for i, (info, pos) in enumerate(zip(glyph_infos, glyph_positions)):
+        index = info.cluster
+        c = f"{txt[index]}_{glyph_count[index]}"
         chars += [c]
-        glyph_index = glyph_infos[i].codepoint
+        glyph_count[index] += 1
+        glyph_index = info.codepoint
         face.load_glyph(glyph_index)
         # face.load_char(c, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
-        bez = glyph_to_cubics(face, x)
+
+        findex = -1 
+        if i+1 < len(glyph_infos):
+            findex = glyph_infos[i+1].cluster
+            foffset = (glyph_positions[i].x_offset, glyph_positions[i].y_offset)
+        
+        if findex != index:
+            bez = glyph_to_cubics(face, x+pos.x_offset, y+pos.y_offset)
+        else:
+            bez = glyph_to_cubics(face, x+pos.x_offset+foffset[0], y+pos.y_offset+foffset[1])
+ 
 
         # Check number of control points if desired
         if target_control is not None:
@@ -149,9 +181,20 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
         else:
             beziers.append(bez)
 
-        kerning = face.get_kerning(previous, c)
-        x += (slot.advance.x + kerning.x) * spacing
-        previous = c
+        # kerning = face.get_kerning(previous, txt[index])
+        # x += (slot.advance.x + kerning.x) * spacing
+        # previous = txt[index]
+    
+        print(f"C: {txt[index]}/{index} | X: {x+pos.x_offset}| Y: {y+pos.y_offset}")
+        # print(f"C: {txt[index]}/{index} | X: {x}: {pos.x_advance}/{pos.x_offset} | Y: {y}: {pos.y_advance}/{pos.y_offset}")
+
+        x += pos.x_advance 
+        y += pos.y_advance
+ 
+        poffset = (pos.x_offset, pos.y_offset) 
+        padvance = (pos.x_advance, pos.y_advance) 
+
+        pindex = index 
 
     return beziers, chars
 
@@ -238,6 +281,7 @@ def font_string_to_svgs(dest_path, font, txt, size=30, spacing=1.0, target_contr
     f = open(fname, 'w')
     f.write(svg_all)
     f.close()
+    return chars
 
 
 if __name__ == '__main__':

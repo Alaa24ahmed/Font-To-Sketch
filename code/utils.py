@@ -70,18 +70,19 @@ def preprocess(font, word, letter, level_of_cc=1):
     font_path = f"code/data/fonts/{font}.ttf"
     init_path = f"code/data/init"
     subdivision_thresh = None
-    font_string_to_svgs(init_path, font_path, word, target_control=target_cp,
+    chars = font_string_to_svgs(init_path, font_path, word, target_control=target_cp,
                         subdivision_thresh=subdivision_thresh)
-    normalize_letter_size(init_path, font_path, word)
+    normalize_letter_size(init_path, font_path, word, chars)
 
     # optimaize two adjacent letters
     if len(letter) > 1:
         subdivision_thresh = None
         font_string_to_svgs(init_path, font_path, letter, target_control=target_cp,
                             subdivision_thresh=subdivision_thresh)
-        normalize_letter_size(init_path, font_path, letter)
+        normalize_letter_size(init_path, font_path, letter, chars)
 
     print("Done preprocess")
+    exit()
 
 
 def get_data_augs(cut_size):

@@ -8,6 +8,7 @@ import torch
 import save_svg
 import vharfbuzz as hb
 from svgpathtools import svgstr2paths
+import xml.etree.ElementTree as ET
 
 
 device = torch.device("cuda" if (
@@ -52,13 +53,22 @@ def fix_single_svg(svg_path, all_word=False):
     output_path = f"{svg_path[:-4]}_scaled.svg"
     save_svg.save_svg(output_path, target_canvas_width, target_canvas_height, shapes, shape_groups)
 
+    tree = ET.parse(output_path)
+    root = tree.getroot()
+
+    # Apply the vertical flip transformation
+    root.set('transform', 'matrix(1 0 0 -1 0 0)')
+
+    # Save the modified SVG to a new file
+    tree.write(output_path)
+
 
 def normalize_letter_size(dest_path, font, txt, chars):
     fontname = os.path.splitext(os.path.basename(font))[0]
-    for i, c in enumerate(chars):
-        fname = f"{dest_path}/{fontname}_{c}.svg"
-        fname = fname.replace(" ", "_")
-        fix_single_svg(fname)
+    # for i, c in enumerate(chars):
+    #     fname = f"{dest_path}/{fontname}_{c}.svg"
+    #     fname = fname.replace(" ", "_")
+    #     fix_single_svg(fname)
 
     fname = f"{dest_path}/{fontname}_{txt}.svg"
     fname = fname.replace(" ", "_")
@@ -351,24 +361,6 @@ def font_string_to_svgs_hb(dest_path, font, txt, size=30, spacing=1.0, target_co
 
     buf.guess_segment_properties()
 
-    glyph_infos = buf.glyph_infos
-    glyph_positions = buf.glyph_positions
-    glyph_count = {glyph_infos[i].cluster: 0 for i in range(len(glyph_infos))}
-    
-    chars = []
-    for i, (info, pos) in enumerate(zip(glyph_infos, glyph_positions)):
-        index = info.cluster
-        c = f"{txt[index]}_{glyph_count[index]}"
-        chars += [c]
-
-    for i, c in enumerate(chars):
-        print(f"==== {c} ====")
-        fname = write_letter_svg_hb(vhb, c, dest_path, fontname)
-
-        num_cp = count_cp(fname, fontname)
-        print(num_cp)
-        print(font, c)
-
     buf = vhb.shape(txt, {"features": {"kern": True, "liga": True}})    
     svg = vhb.buf_to_svg(buf)
 
@@ -378,7 +370,7 @@ def font_string_to_svgs_hb(dest_path, font, txt, size=30, spacing=1.0, target_co
     f = open(fname, 'w')
     f.write(svg)
     f.close()
-    return chars
+    return None
 
 if __name__ == '__main__':
 

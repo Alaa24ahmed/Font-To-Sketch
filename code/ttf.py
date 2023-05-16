@@ -355,10 +355,11 @@ def font_string_to_svgs(dest_path, font, txt, size=30, spacing=1.0, target_contr
 def font_string_to_svgs_hb(dest_path, font, txt, size=30, spacing=1.0, target_control=None, subdivision_thresh=None):
 
     fontname = os.path.splitext(os.path.basename(font))[0]
-    vhb = hb.Vharfbuzz(font)
-    
-    buf = vhb.shape(txt, {"features": {"kern": True, "liga": True}})
+    if not os.path.isdir(dest_path):
+        os.mkdir(dest_path)
 
+    vhb = hb.Vharfbuzz(font)
+    buf = vhb.shape(txt, {"features": {"kern": True, "liga": True}})
     buf.guess_segment_properties()
 
     buf = vhb.shape(txt, {"features": {"kern": True, "liga": True}})    

@@ -86,7 +86,6 @@ def preprocess(font, word, letter, level_of_cc=1):
         normalize_letter_size(init_path, font_path, letter, chars)
 
     print("Done preprocess")
-    exit()
 
 def get_data_augs(cut_size):
     augmentations = []

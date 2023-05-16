@@ -132,18 +132,12 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
 
     face = ft.Face(font)
     face.set_char_size(64 * size)
-    slot = face.glyph
 
     glyph_count = {glyph_infos[i].cluster: 0 for i in range(len(glyph_infos))}
     x, y = 0, 0
     beziers = []
     chars = []
-    pindex = -1
     print(f"Len GInfo: {len(glyph_infos)} | Text: {len(txt)}")
-    # glyph_infos = glyph_infos[::-1]
-    # glyph_positions = glyph_positions[::-1]
-    poffset = (0, 0)
-    padvance = (0, 0)
     for i, (info, pos) in enumerate(zip(glyph_infos, glyph_positions)):
         index = info.cluster
         c = f"{txt[index]}_{glyph_count[index]}"
@@ -185,16 +179,11 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
         # x += (slot.advance.x + kerning.x) * spacing
         # previous = txt[index]
     
-        print(f"C: {txt[index]}/{index} | X: {x+pos.x_offset}| Y: {y+pos.y_offset}")
+        # print(f"C: {txt[index]}/{index} | X: {x+pos.x_offset}| Y: {y+pos.y_offset}")
         # print(f"C: {txt[index]}/{index} | X: {x}: {pos.x_advance}/{pos.x_offset} | Y: {y}: {pos.y_advance}/{pos.y_offset}")
 
         x += pos.x_advance 
         y += pos.y_advance
- 
-        poffset = (pos.x_offset, pos.y_offset) 
-        padvance = (pos.x_advance, pos.y_advance) 
-
-        pindex = index 
 
     return beziers, chars
 

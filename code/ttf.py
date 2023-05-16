@@ -42,6 +42,7 @@ def fix_single_svg(svg_path, all_word=False):
     for num, p in enumerate(shapes):
         p.points[:, 0] = p.points[:, 0] * scale_canvas_w
         p.points[:, 1] = p.points[:, 1] * scale_canvas_h + target_h_letter
+        p.points[:, 1] = -p.points[:, 1]
 
     w_min, w_max = min([torch.min(p.points[:, 0]) for p in shapes]), max([torch.max(p.points[:, 0]) for p in shapes])
     h_min, h_max = min([torch.min(p.points[:, 1]) for p in shapes]), max([torch.max(p.points[:, 1]) for p in shapes])
@@ -52,16 +53,6 @@ def fix_single_svg(svg_path, all_word=False):
 
     output_path = f"{svg_path[:-4]}_scaled.svg"
     save_svg.save_svg(output_path, target_canvas_width, target_canvas_height, shapes, shape_groups)
-
-    tree = ET.parse(output_path)
-    root = tree.getroot()
-
-    # Apply the vertical flip transformation
-    root.set('transform', 'matrix(1 0 0 -1 0 0)')
-
-    # Save the modified SVG to a new file
-    tree.write(output_path)
-
 
 def normalize_letter_size(dest_path, font, txt, chars):
     fontname = os.path.splitext(os.path.basename(font))[0]

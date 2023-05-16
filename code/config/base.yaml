@@ -43,7 +43,7 @@ conformal_0.5_dist_pixel_100_kernel201:
       use_conformal_loss: true
       angeles_w: 0.5
 
-Arabic-Ruqaa:
+Animals:
   parent_config: baseline
   level_of_cc: 1
   num_iter: 500

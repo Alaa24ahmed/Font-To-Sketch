@@ -6,7 +6,7 @@ import kornia.augmentation as K
 import pydiffvg
 import save_svg
 import cv2
-from ttf import font_string_to_svgs, normalize_letter_size
+from ttf import font_string_to_svgs, font_string_to_svgs_hb, normalize_letter_size
 import torch
 import numpy as np
 
@@ -67,21 +67,22 @@ def preprocess(font, word, letter, level_of_cc=1):
         target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
 
     print(f"======= {font} =======")
-    font_path = f"code/data/arabic-fonts/{font}.ttf"
+    font_path = f"code/data/fonts/{font}.ttf"
     init_path = f"code/data/init"
     subdivision_thresh = None
-    chars = font_string_to_svgs(init_path, font_path, word, target_control=target_cp,
+    chars = font_string_to_svgs_hb(init_path, font_path, word, target_control=target_cp,
                         subdivision_thresh=subdivision_thresh)
     normalize_letter_size(init_path, font_path, word, chars)
 
     # optimaize two adjacent letters
     if len(letter) > 1:
         subdivision_thresh = None
-        font_string_to_svgs(init_path, font_path, letter, target_control=target_cp,
+        font_string_to_svgs_hb(init_path, font_path, letter, target_control=target_cp,
                             subdivision_thresh=subdivision_thresh)
         normalize_letter_size(init_path, font_path, letter, chars)
 
     print("Done preprocess")
+    exit()
 
 def get_data_augs(cut_size):
     augmentations = []

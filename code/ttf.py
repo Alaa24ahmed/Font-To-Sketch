@@ -7,6 +7,7 @@ import pydiffvg
 import torch
 import save_svg
 import vharfbuzz as hb
+from svgpathtools import svgstr2paths
 
 
 device = torch.device("cuda" if (
@@ -78,7 +79,7 @@ def glyph_to_cubics(face, x=0, y=0):
                 Q[2]]
 
     beziers = []
-    pt = lambda p: np.array([p.x + x, -p.y - y])  # Flipping here since freetype has y-up
+    pt = lambda p: np.array([x + p.x, - p.y - y])  # Flipping here since freetype has y-up
     last = lambda: beziers[-1][-1]
 
     def move_to(a, beziers):
@@ -129,34 +130,86 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
 
     glyph_infos = buf.glyph_infos
     glyph_positions = buf.glyph_positions
-
+    glyph_count = {glyph_infos[i].cluster: 0 for i in range(len(glyph_infos))}
+    
+    svg = vhb.buf_to_svg(buf)
+    paths, attributes = svgstr2paths(svg)
+    
     face = ft.Face(font)
     face.set_char_size(64 * size)
+    pindex = -1
 
-    glyph_count = {glyph_infos[i].cluster: 0 for i in range(len(glyph_infos))}
     x, y = 0, 0
-    beziers = []
-    chars = []
-    print(f"Len GInfo: {len(glyph_infos)} | Text: {len(txt)}")
+    beziers, chars = [], []
+
+    for path_idx, path in enumerate(paths):
+        segment_vals = []
+        print("="*20 + str(path_idx) + "="*20)
+        for segment in path:
+            segment_type = segment.__class__.__name__
+            t_values = np.linspace(0, 1, 10)
+            points = [segment.point(t) for t in t_values]
+            for pt in points:
+                segment_vals += [[pt.real, -pt.imag]]
+
+            # points = [bezier.point(t) for t in t_values]
+
+            if segment_type == 'Line':
+                # Line segment
+                start = segment.start
+                end = segment.end
+                print(f"Line: ({start.real}, {start.imag}) to ({end.real}, {end.imag})")
+            
+            elif segment_type == 'QuadraticBezier':
+                # Quadratic Bézier segment
+                start = segment.start
+                control = segment.control
+                end = segment.end
+                print(f"Quadratic Bézier: ({start.real}, {start.imag}) to ({end.real}, {end.imag}) with control point ({control.real}, {control.imag})")
+            
+            elif segment_type == 'CubicBezier':
+                # Cubic Bézier segment
+                start = segment.start
+                control1 = segment.control1
+                control2 = segment.control2
+                end = segment.end
+                print(f"Cubic Bézier: ({start.real}, {start.imag}) to ({end.real}, {end.imag}) with control points ({control1.real}, {control1.imag}) and ({control2.real}, {control2.imag})")
+            
+            else:
+                # Other segment types (Arc, Close)
+                print(f"Segment type: {segment_type}")
+
+        beziers += [[np.array(segment_vals)]]
+
+    beziers_2 = []
+    glyph_infos = glyph_infos[::-1]
+    glyph_positions = glyph_positions[::-1]
     for i, (info, pos) in enumerate(zip(glyph_infos, glyph_positions)):
         index = info.cluster
         c = f"{txt[index]}_{glyph_count[index]}"
         chars += [c]
         glyph_count[index] += 1
         glyph_index = info.codepoint
-        face.load_glyph(glyph_index)
+        face.load_glyph(glyph_index, flags=ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
         # face.load_char(c, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
 
         findex = -1 
         if i+1 < len(glyph_infos):
             findex = glyph_infos[i+1].cluster
-            foffset = (glyph_positions[i].x_offset, glyph_positions[i].y_offset)
+            foffset = (glyph_positions[i+1].x_offset, glyph_positions[i+1].y_offset)
+            fadvance = (glyph_positions[i+1].x_advance, glyph_positions[i+1].y_advance)
         
-        if findex != index:
-            bez = glyph_to_cubics(face, x+pos.x_offset, y+pos.y_offset)
-        else:
-            bez = glyph_to_cubics(face, x+pos.x_offset+foffset[0], y+pos.y_offset+foffset[1])
- 
+        # bez = glyph_to_cubics(face, x+pos.x_offset+pos.x_advance, y+pos.y_offset+pos.y_advance)
+        # if findex != index:
+        #     x += pos.x_offset
+        #     y += pos.y_offset
+        # else:
+        #     x += pos.x_offset
+        #     y += pos.y_offset
+
+
+        bez = glyph_to_cubics(face, x, y)
+            
 
         # Check number of control points if desired
         if target_control is not None:
@@ -171,21 +224,24 @@ def font_string_to_beziers(font, txt, size=30, spacing=1.0, merge=True, target_c
                     print(nctrl)
 
         if merge:
-            beziers += bez
+            beziers_2 += bez
         else:
-            beziers.append(bez)
+            beziers_2.append(bez)
 
-        # kerning = face.get_kerning(previous, txt[index])
+        # kerning = face.get_kerning(index, findex)
         # x += (slot.advance.x + kerning.x) * spacing
         # previous = txt[index]
     
         # print(f"C: {txt[index]}/{index} | X: {x+pos.x_offset}| Y: {y+pos.y_offset}")
-        # print(f"C: {txt[index]}/{index} | X: {x}: {pos.x_advance}/{pos.x_offset} | Y: {y}: {pos.y_advance}/{pos.y_offset}")
+        print(f"C: {txt[index]}/{index} | X: {x}: {pos.x_advance}/{pos.x_offset} | Y: {y}: {pos.y_advance}/{pos.y_offset}")
+        
+        # if findex != index:
+        x -= pos.x_advance
+        # y += pos.y_advance + pos.y_offset
 
-        x += pos.x_advance 
-        y += pos.y_advance
-
-    return beziers, chars
+        pindex = index
+            
+    return beziers_2, chars
 
 
 def bezier_chain_to_commands(C, closed=True):
@@ -229,6 +285,16 @@ def write_letter_svg(c, header, fontname, beziers, subdivision_thresh, dest_path
     f.close()
     return fname, path
 
+def write_letter_svg_hb(vhb, c, dest_path, fontname):
+    buf = vhb.shape(c, {"features": {"kern": True, "liga": True}})    
+    svg = vhb.buf_to_svg(buf)
+
+    fname = f"{dest_path}/{fontname}_{c}.svg"
+    fname = fname.replace(" ", "_")
+    f = open(fname, 'w')
+    f.write(svg)
+    f.close()
+    return fname
 
 def font_string_to_svgs(dest_path, font, txt, size=30, spacing=1.0, target_control=None, subdivision_thresh=None):
 
@@ -263,15 +329,56 @@ def font_string_to_svgs(dest_path, font, txt, size=30, spacing=1.0, target_contr
         # Add to global svg
         svg_all += path + '</g>\n'
 
+    vhb = hb.Vharfbuzz(font)
+    buf = vhb.shape(txt, {"features": {"kern": True, "liga": True}})    
+    svg = vhb.buf_to_svg(buf)
+
     # Save global svg
     svg_all += '</svg>\n'
     fname = f"{dest_path}/{fontname}_{txt}.svg"
     fname = fname.replace(" ", "_")
     f = open(fname, 'w')
-    f.write(svg_all)
+    f.write(svg)
     f.close()
     return chars
 
+def font_string_to_svgs_hb(dest_path, font, txt, size=30, spacing=1.0, target_control=None, subdivision_thresh=None):
+
+    fontname = os.path.splitext(os.path.basename(font))[0]
+    vhb = hb.Vharfbuzz(font)
+    
+    buf = vhb.shape(txt, {"features": {"kern": True, "liga": True}})
+
+    buf.guess_segment_properties()
+
+    glyph_infos = buf.glyph_infos
+    glyph_positions = buf.glyph_positions
+    glyph_count = {glyph_infos[i].cluster: 0 for i in range(len(glyph_infos))}
+    
+    chars = []
+    for i, (info, pos) in enumerate(zip(glyph_infos, glyph_positions)):
+        index = info.cluster
+        c = f"{txt[index]}_{glyph_count[index]}"
+        chars += [c]
+
+    for i, c in enumerate(chars):
+        print(f"==== {c} ====")
+        fname = write_letter_svg_hb(vhb, c, dest_path, fontname)
+
+        num_cp = count_cp(fname, fontname)
+        print(num_cp)
+        print(font, c)
+
+    buf = vhb.shape(txt, {"features": {"kern": True, "liga": True}})    
+    svg = vhb.buf_to_svg(buf)
+
+    # Save global svg
+    fname = f"{dest_path}/{fontname}_{txt}.svg"
+    fname = fname.replace(" ", "_")
+    f = open(fname, 'w')
+    f.write(svg)
+    f.close()
+    return chars
 
 if __name__ == '__main__':
 

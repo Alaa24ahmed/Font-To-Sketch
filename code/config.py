@@ -42,7 +42,11 @@ def parse_args():
     cfg.word = cfg.semantic_concept if args.word == "none" else args.word
     if " " in cfg.word:
       raise ValueError(f'no spaces are allowed')
-    cfg.caption = f"a {args.semantic_concept}. {args.prompt_suffix}"
+    if "jpeg" in args.semantic_concept:
+        cfg.caption = args.semantic_concept 
+    else:
+        cfg.caption = f"a {args.semantic_concept}. {args.prompt_suffix}"
+        
     cfg.log_dir = f"{args.log_dir}/{args.experiment}_{cfg.word}"
     if args.optimized_letter in cfg.word:
         cfg.optimized_letter = args.optimized_letter

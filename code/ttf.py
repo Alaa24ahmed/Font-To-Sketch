@@ -43,6 +43,7 @@ def fix_single_svg(svg_path, all_word=False):
         p.points[:, 0] = p.points[:, 0] * scale_canvas_w
         p.points[:, 1] = p.points[:, 1] * scale_canvas_h + target_h_letter
         p.points[:, 1] = -p.points[:, 1]
+        # p.points[:, 0] = -p.points[:, 0]
 
     w_min, w_max = min([torch.min(p.points[:, 0]) for p in shapes]), max([torch.max(p.points[:, 0]) for p in shapes])
     h_min, h_max = min([torch.min(p.points[:, 1]) for p in shapes]), max([torch.max(p.points[:, 1]) for p in shapes])

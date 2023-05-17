@@ -7,6 +7,9 @@ from torch.nn import functional as nnf
 from easydict import EasyDict
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
+from torchvision import transforms
+from PIL import Image
+from sentence_transformers import SentenceTransformer
 
 from diffusers import StableDiffusionPipeline
 
@@ -18,6 +21,9 @@ class SDSLoss(nn.Module):
         self.pipe = StableDiffusionPipeline.from_pretrained(cfg.diffusion.model,
                                                        torch_dtype=torch.float16, use_auth_token=cfg.token)
         self.pipe = self.pipe.to(self.device)
+
+        self.clip = SentenceTransformer('clip-ViT-L-14')
+    
         # default scheduler: PNDMScheduler(beta_start=0.00085, beta_end=0.012,
         # beta_schedule="scaled_linear", num_train_timesteps=1000)
         self.alphas = self.pipe.scheduler.alphas_cumprod.to(self.device)
@@ -28,15 +34,25 @@ class SDSLoss(nn.Module):
 
     def embed_text(self):
         # tokenizer and embed text
-        text_input = self.pipe.tokenizer(self.cfg.caption, padding="max_length",
-                                         max_length=self.pipe.tokenizer.model_max_length,
-                                         truncation=True, return_tensors="pt")
-        uncond_input = self.pipe.tokenizer([""], padding="max_length",
-                                         max_length=text_input.input_ids.shape[-1],
-                                         return_tensors="pt")
-        with torch.no_grad():
-            text_embeddings = self.pipe.text_encoder(text_input.input_ids.to(self.device))[0]
-            uncond_embeddings = self.pipe.text_encoder(uncond_input.input_ids.to(self.device))[0]
+
+        if "jpeg" not in self.cfg.caption:
+          text_input = self.pipe.tokenizer(self.cfg.caption, padding="max_length",
+                                          max_length=self.pipe.tokenizer.model_max_length,
+                                          truncation=True, return_tensors="pt")
+          uncond_input = self.pipe.tokenizer([""], padding="max_length",
+                                          max_length=text_input.input_ids.shape[-1],
+                                          return_tensors="pt")
+          with torch.no_grad():
+              text_embeddings = self.pipe.text_encoder(text_input.input_ids.to(self.device))[0]
+              uncond_embeddings = self.pipe.text_encoder(uncond_input.input_ids.to(self.device))[0]
+        else:
+            print(f"> Reading Image {self.cfg.caption}")
+            with torch.no_grad():
+                img_emb = self.clip.encode(Image.open(self.cfg.caption))
+            print(img_emb.size())
+            text_embeddings = img_emb
+            uncond_embeddings = img_emb
+
         self.text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
         self.text_embeddings = self.text_embeddings.repeat_interleave(self.cfg.batch_size, 0)
         del self.pipe.tokenizer

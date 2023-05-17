@@ -10,13 +10,17 @@ if __name__ == "__main__":
     save_path = os.path.join(os.path.dirname(path), "collage.gif")
 
 
-    width, height = 600, 600
-    nx, ny = 2, 2
+    width, height = 400, 400
+    nx, ny = 4, 4
     n_frames = 67
     collage = np.ones((n_frames, width*nx, height*ny)).astype(np.uint8)
 
-    filenames = [p for p in glob(path) if "collage" not in p]
-    assert len(filenames) <= nx*ny
+    filenames = [p for p in glob(path) if os.path.basename(p)[:-4] not in ["palestine", "amin", "collage"]]
+    print(f"> {len(filenames)} Files Found")
+    for file in filenames:
+        print(os.path.basename(file))
+
+    assert nx*ny <= len(filenames)
 
     for i in range(nx):
         for j in range(ny):
@@ -25,6 +29,6 @@ if __name__ == "__main__":
             for frame_idx in range(image.n_frames):
                 image.seek(frame_idx)
                 frame = image.convert('L').copy()
-                collage[frame_idx, i*width:(i+1)*width,j*height:(j+1)*height] = frame
+                collage[frame_idx, i*width:(i+1)*width,j*height:(j+1)*height] = np.asarray(frame)[100:500, 100:500]
 
     imageio.mimsave(save_path, collage)

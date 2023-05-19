@@ -9,7 +9,7 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from torchvision import transforms
 from PIL import Image
-from sentence_transformers import SentenceTransformer
+from transformers import CLIPProcessor, CLIPModel
 
 from diffusers import StableDiffusionPipeline
 
@@ -22,7 +22,8 @@ class SDSLoss(nn.Module):
                                                        torch_dtype=torch.float16, use_auth_token=cfg.token)
         self.pipe = self.pipe.to(self.device)
 
-        self.clip = SentenceTransformer('clip-ViT-L-14')
+        self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14").to(self.device)
+        self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
     
         # default scheduler: PNDMScheduler(beta_start=0.00085, beta_end=0.012,
         # beta_schedule="scaled_linear", num_train_timesteps=1000)
@@ -48,11 +49,14 @@ class SDSLoss(nn.Module):
         else:
             print(f"> Reading Image {self.cfg.caption}")
             with torch.no_grad():
-                img_emb = self.clip.encode(Image.open(self.cfg.caption))
-            print(img_emb.size())
+                image = Image.open(self.cfg.caption)
+                inputs = self.clip_processor(images=image, return_tensors="pt").to(self.device)
+                img_emb = self.clip_model.get_image_features(**inputs)
             text_embeddings = img_emb
             uncond_embeddings = img_emb
 
+        print(text_embeddings.size())
+        print(uncond_embeddings.size())
         self.text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
         self.text_embeddings = self.text_embeddings.repeat_interleave(self.cfg.batch_size, 0)
         del self.pipe.tokenizer

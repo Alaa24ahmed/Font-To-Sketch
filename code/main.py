@@ -50,8 +50,6 @@ if __name__ == "__main__":
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
 
-    # cfg.word = cfg.word[::-1]
-
     print("preprocessing")
     preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.level_of_cc)
 
@@ -163,7 +161,7 @@ if __name__ == "__main__":
     save_svg.save_svg(
         filename, w, h, shapes, shape_groups)
 
-    combine_word(cfg.word, cfg.optimized_letter, cfg.font, cfg.experiment_dir)
+    # combine_word(cfg.word, cfg.optimized_letter, cfg.font, cfg.experiment_dir)
 
     if cfg.save.image:
         filename = os.path.join(

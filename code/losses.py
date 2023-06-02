@@ -22,8 +22,8 @@ class SDSLoss(nn.Module):
                                                        torch_dtype=torch.float16, use_auth_token=cfg.token)
         self.pipe = self.pipe.to(self.device)
 
-        self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14").to(self.device)
-        self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
+        # self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14").to(self.device)
+        # self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
     
         # default scheduler: PNDMScheduler(beta_start=0.00085, beta_end=0.012,
         # beta_schedule="scaled_linear", num_train_timesteps=1000)
@@ -55,8 +55,6 @@ class SDSLoss(nn.Module):
             text_embeddings = img_emb
             uncond_embeddings = img_emb
 
-        print(text_embeddings.size())
-        print(uncond_embeddings.size())
         self.text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
         self.text_embeddings = self.text_embeddings.repeat_interleave(self.cfg.batch_size, 0)
         del self.pipe.tokenizer
@@ -192,7 +190,3 @@ class ConformalLoss:
         for i in range(len(self.faces)):
             loss_angles += (nnf.mse_loss(angles[i], self.angles[i]))
         return loss_angles
-
-
-
-

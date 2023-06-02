@@ -8,16 +8,16 @@ from PIL import Image
 if __name__ == "__main__":
     
     path = "/Users/bkhmsi/Desktop/Animal-Words/*.gif"
-    save_path = os.path.join(os.path.dirname(path), "collage_loop_25_2.gif")
+    save_path = os.path.join(os.path.dirname(path), "collage_loop_25_3.gif")
 
 
-    width, height = 400, 400
-    width, height = 100, 100
+    width, height = 250, 250
+    # width, height = 100, 100
     nx, ny = 5, 5
     n_frames = 67
     collage = np.ones((n_frames*2, width*nx, height*ny)).astype(np.uint8)*255
 
-    filenames = [p for p in glob(path) if os.path.basename(p)[:-4] not in ["palestine", "amin", "collage", "collage_loop_25", "collage_loop_7", "collage_1d"]]
+    filenames = [p for p in glob(path) if os.path.basename(p)[:-4] not in ["palestine", "amin", "collage", "collage_loop_25", "collage_loop_25_2", "collage_loop_25_3a", "collage_loop_7", "collage_1d"]]
     print(f"> {len(filenames)} Files Found")
 
     f_filenames = filenames
@@ -38,15 +38,15 @@ if __name__ == "__main__":
             for frame_idx in range(n_frames):
                 image.seek(frame_idx)
                 frame = image.convert('L').copy()
-                frame = frame.resize((width,height))
-                collage[idx, i*width:(i+1)*width,j*height:(j+1)*height] = np.asarray(frame)
+                frame = frame.resize((300,300))
+                collage[idx, i*width:(i+1)*width,j*height:(j+1)*height] = np.asarray(frame)[25:275, 25:275]
                 idx += 1
 
             for frame_idx in reversed(range(n_frames)):
                 image.seek(frame_idx)
                 frame = image.convert('L').copy()
-                frame = frame.resize((width,height))
-                collage[idx, i*width:(i+1)*width,j*height:(j+1)*height] = np.asarray(frame)
+                frame = frame.resize((300,300))
+                collage[idx, i*width:(i+1)*width,j*height:(j+1)*height] = np.asarray(frame)[25:275, 25:275]
                 idx += 1
 
 

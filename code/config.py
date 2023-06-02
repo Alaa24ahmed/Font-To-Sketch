@@ -34,14 +34,18 @@ def parse_args():
     args = parser.parse_args()
     with open('TOKEN', 'r') as f:
         setattr(args, 'token', f.read().replace('\n', ''))
+
     cfg.config = args.config
     cfg.experiment = args.experiment
     cfg.seed = args.seed
     cfg.font = args.font
     cfg.semantic_concept = args.semantic_concept
     cfg.word = cfg.semantic_concept if args.word == "none" else args.word
-    if " " in cfg.word:
-      raise ValueError(f'no spaces are allowed')
+    cfg.letter = cfg.word
+
+    # if " " in cfg.word:
+    #   raise ValueError(f'no spaces are allowed')
+    
     if "jpeg" in args.semantic_concept:
         cfg.caption = args.semantic_concept 
     else:
@@ -52,12 +56,15 @@ def parse_args():
         cfg.optimized_letter = args.optimized_letter
     else:
       raise ValueError(f'letter should be in word')
+    
     cfg.batch_size = args.batch_size
     cfg.token = args.token
     cfg.use_wandb = args.use_wandb
     cfg.wandb_user = args.wandb_user
     cfg.letter = f"{args.font}_{args.optimized_letter}_scaled"
     cfg.target = f"code/data/init/{cfg.letter}"
+    if ' ' in cfg.target:
+        cfg.target = cfg.target.replace(' ', '_')
 
     return cfg
 

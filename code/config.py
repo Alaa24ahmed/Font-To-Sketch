@@ -23,8 +23,8 @@ def parse_args():
     parser.add_argument('--font', type=str, default="none", help="font name")
     parser.add_argument('--semantic_concept', type=str, help="the semantic concept to insert")
     parser.add_argument('--word', type=str, default="none", help="the text to work on")
-    parser.add_argument('--prompt_suffix', type=str, default="minimal flat 2d vector. lineal color."
-                                                             " trending on artstation")
+    parser.add_argument('--script', type=str, default="arabic", help="script")
+    parser.add_argument('--prompt_suffix', type=str, default="minimal flat 2d vector. lineal color. trending on artstation")
     parser.add_argument('--optimized_letter', type=str, default="none", help="the letter in the word to optimize")
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--use_wandb', type=int, default=0)
@@ -42,6 +42,7 @@ def parse_args():
     cfg.semantic_concept = args.semantic_concept
     cfg.word = cfg.semantic_concept if args.word == "none" else args.word
     cfg.letter = cfg.word
+    cfg.script = args.script
 
     # if " " in cfg.word:
     #   raise ValueError(f'no spaces are allowed')
@@ -51,7 +52,8 @@ def parse_args():
     else:
         cfg.caption = f"a {args.semantic_concept}. {args.prompt_suffix}"
         
-    cfg.log_dir = f"{args.log_dir}/{args.experiment}_{cfg.word}"
+    # cfg.log_dir = f"{args.log_dir}/{args.experiment}_{cfg.word}"
+    cfg.log_dir = f"{args.log_dir}/{cfg.script}"
     if args.optimized_letter in cfg.word:
         cfg.optimized_letter = args.optimized_letter
     else:
@@ -89,9 +91,8 @@ def set_config():
     del cfgs
 
     # set experiment dir
-    signature = f"{cfg.letter}_concept_{cfg.semantic_concept}_seed_{cfg.seed}"
-    cfg.experiment_dir = \
-        osp.join(cfg.log_dir, cfg.font, signature)
+    signature = f"{cfg.word}_{cfg.semantic_concept}_{cfg.seed}"
+    cfg.experiment_dir = osp.join(cfg.log_dir, signature)
     configfile = osp.join(cfg.experiment_dir, 'config.yaml')
     print('Config:', cfg)
 
@@ -101,7 +102,7 @@ def set_config():
         yaml.dump(edict_2_dict(cfg), f)
 
     if cfg.use_wandb:
-        wandb.init(project="Word-As-Image", entity=cfg.wandb_user,
+        wandb.init(project="Font-To-Image", entity=cfg.wandb_user,
                    config=cfg, name=f"{signature}", id=wandb.util.generate_id())
 
     if cfg.seed is not None:

@@ -9,6 +9,7 @@ import cv2
 from ttf import font_string_to_svgs, font_string_to_svgs_hb, normalize_letter_size
 import torch
 import numpy as np
+from glob import glob
 
 
 def edict_2_dict(x):
@@ -44,7 +45,7 @@ def update(d, u):
     return d
 
 
-def preprocess(font, word, letter, level_of_cc=1):
+def preprocess(font, word, letter, script, level_of_cc=1):
 
     if level_of_cc == 0:
         target_cp = None
@@ -66,11 +67,12 @@ def preprocess(font, word, letter, level_of_cc=1):
                      }
         target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
 
+    script_path = f"code/data/fonts/{script}"
+    if font == "none":
+        font = osp.basename(glob(f"{script_path}/*.ttf")[0])
+        
     print(f"======= {font} =======")
-    if font[0] in ['0', '1', '2']:
-        font_path = f"code/data/arabic-fonts/{font}.ttf"
-    else:
-        font_path = f"code/data/fonts/{font}.ttf"
+    font_path = f"code/data/fonts/{script}/{font}.ttf"
 
     init_path = f"code/data/init"
     subdivision_thresh = None

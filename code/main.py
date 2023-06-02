@@ -51,7 +51,7 @@ if __name__ == "__main__":
     device = pydiffvg.get_device()
 
     print("preprocessing")
-    preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.level_of_cc)
+    preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.script, cfg.level_of_cc)
 
     if cfg.loss.use_sds_loss:
         sds_loss = SDSLoss(cfg, device)

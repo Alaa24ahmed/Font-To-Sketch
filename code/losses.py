@@ -168,10 +168,11 @@ class ConformalLoss:
 
     def init_faces(self, device: torch.device) -> torch.tensor:
         faces_ = []
+        num_shapes = 0
         for j, c in enumerate(self.target_letter):
             points_np = [self.parameters.point[i].clone().detach().cpu().numpy() for i in range(len(self.parameters.point))]
             start_ind, end_ind, shapes_per_letter = self.get_letter_inds(c)
-            print(c, start_ind, end_ind)
+            print(c, start_ind, end_ind, shapes_per_letter)
             holes = []
             if shapes_per_letter > 1:
                 holes = points_np[start_ind+1:end_ind]
@@ -181,6 +182,9 @@ class ConformalLoss:
             faces = Delaunay(points_np).simplices
             is_intersect = np.array([poly.contains(Point(points_np[face].mean(0))) for face in faces], dtype=np.bool_)
             faces_.append(torch.from_numpy(faces[is_intersect]).to(device, dtype=torch.int64))
+            num_shapes += shapes_per_letter
+            if num_shapes >= len(self.target_letter): 
+              break
         return faces_
 
     def __call__(self) -> torch.Tensor:

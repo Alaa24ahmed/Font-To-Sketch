@@ -69,7 +69,7 @@ def parse_args():
     cfg.token = args.token
     cfg.use_wandb = args.use_wandb
     cfg.wandb_user = args.wandb_user
-    cfg.letter = f"{args.font}_{args.optimized_letter}_scaled"
+    cfg.letter = f"{cfg.font}_{args.optimized_letter}_scaled"
     cfg.target = f"code/data/init/{cfg.letter}"
     if ' ' in cfg.target:
         cfg.target = cfg.target.replace(' ', '_')

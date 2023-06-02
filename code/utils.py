@@ -9,7 +9,6 @@ import cv2
 from ttf import font_string_to_svgs, font_string_to_svgs_hb, normalize_letter_size
 import torch
 import numpy as np
-from glob import glob
 
 
 def edict_2_dict(x):
@@ -66,10 +65,6 @@ def preprocess(font, word, letter, script, level_of_cc=1):
                      "y": 120, "z": 120
                      }
         target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
-
-    script_path = f"code/data/fonts/{script}"
-    if font == "none":
-        font = osp.basename(glob(f"{script_path}/*.ttf")[0])
         
     print(f"======= {font} =======")
     font_path = f"code/data/fonts/{script}/{font}.ttf"

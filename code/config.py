@@ -12,6 +12,7 @@ from utils import (
 import wandb
 import warnings
 warnings.filterwarnings("ignore")
+from glob import glob
 
 
 def parse_args():
@@ -43,6 +44,11 @@ def parse_args():
     cfg.word = cfg.semantic_concept if args.word == "none" else args.word
     cfg.letter = cfg.word
     cfg.script = args.script
+
+    script_path = f"code/data/fonts/{cfg.script}"
+    if cfg.font == "none":
+        cfg.font = osp.basename(glob(f"{script_path}/*.ttf")[0])[:-4]
+    
 
     # if " " in cfg.word:
     #   raise ValueError(f'no spaces are allowed')

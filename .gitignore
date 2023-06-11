@@ -4,3 +4,5 @@ output
 diffvg
 code/data/init
 code/data/arabic-fonts/*.ttf
+examples
+transfer.py

@@ -1,5 +1,7 @@
-word="دلفين"
-concept="dolphin"
 seed=42
-font="ArefRuqaa"
-python code/main.py --experiment Animals --semantic_concept "$concept" --optimized_letter "$word" --word "$word" --seed $seed --font $font --use_wandb 0
+experiment="default"
+word="موسيقى"
+concept="music"
+script="arabic"
+
+python code/main.py --experiment $experiment --script $script --semantic_concept "$concept" --optimized_letter "$word" --word "$word" --seed $seed

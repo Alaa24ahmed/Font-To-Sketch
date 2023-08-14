@@ -1,0 +1,147 @@
+wandb_version: 1
+
+parent_config:
+  desc: null
+  value: baseline
+save:
+  desc: null
+  value:
+    init: true
+    image: true
+    video: true
+    video_frame_freq: 1
+trainable:
+  desc: null
+  value:
+    point: true
+lr_base:
+  desc: null
+  value:
+    point: 1
+lr:
+  desc: null
+  value:
+    lr_init: 0.002
+    lr_final: 0.0008
+    lr_delay_mult: 0.1
+    lr_delay_steps: 100
+num_iter:
+  desc: null
+  value: 500
+render_size:
+  desc: null
+  value: 600
+cut_size:
+  desc: null
+  value: 512
+level_of_cc:
+  desc: null
+  value: 1
+seed:
+  desc: null
+  value: 42
+diffusion:
+  desc: null
+  value:
+    model: runwayml/stable-diffusion-v1-5
+    timesteps: 1000
+    guidance_scale: 100
+loss:
+  desc: null
+  value:
+    use_sds_loss: true
+    tone:
+      use_tone_loss: true
+      dist_loss_weight: 200
+      pixel_dist_kernel_blur: 201
+      pixel_dist_sigma: 10
+    conformal:
+      use_conformal_loss: true
+      angeles_w: 0.5
+config:
+  desc: null
+  value: code/config/base.yaml
+experiment:
+  desc: null
+  value: default
+font:
+  desc: null
+  value: /home/ubuntu/ai_dev/NST/text2svg/Font-To-Sketch/code/data/fonts/arabic/16.ttf
+semantic_concept:
+  desc: null
+  value: music
+word:
+  desc: null
+  value: موسيقى
+letter:
+  desc: null
+  value: /home/ubuntu/ai_dev/NST/text2svg/Font-To-Sketch/code/data/fonts/arabic/16.ttf_موسيقى_scaled
+script:
+  desc: null
+  value: arabic
+caption:
+  desc: null
+  value: a music. minimal flat 2d vector. lineal color. trending on artstation
+log_dir:
+  desc: null
+  value: output/arabic
+optimized_letter:
+  desc: null
+  value: موسيقى
+batch_size:
+  desc: null
+  value: 1
+token:
+  desc: null
+  value: ''
+use_wandb:
+  desc: null
+  value: 1
+wandb_user:
+  desc: null
+  value: none
+target:
+  desc: null
+  value: code/data/init//home/ubuntu/ai_dev/NST/text2svg/Font-To-Sketch/code/data/fonts/arabic/16.ttf_موسيقى_scaled
+experiment_dir:
+  desc: null
+  value: output/arabic/موسيقى_music_42
+_wandb:
+  desc: null
+  value:
+    python_version: 3.8.5
+    cli_version: 0.15.8
+    framework: huggingface
+    huggingface_version: 4.31.0
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1692009412.439867
+    t:
+      1:
+      - 1
+      - 11
+      - 41
+      - 49
+      - 55
+      - 71
+      - 79
+      - 83
+      2:
+      - 1
+      - 11
+      - 41
+      - 49
+      - 55
+      - 71
+      - 79
+      - 83
+      3:
+      - 13
+      - 14
+      - 16
+      - 23
+      4: 3.8.5
+      5: 0.15.8
+      6: 4.31.0
+      8:
+      - 5

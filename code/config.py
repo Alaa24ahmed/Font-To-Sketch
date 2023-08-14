@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--prompt_suffix', type=str, default="minimal flat 2d vector. lineal color. trending on artstation")
     parser.add_argument('--optimized_letter', type=str, default="none", help="the letter in the word to optimize")
     parser.add_argument('--batch_size', type=int, default=1)
-    parser.add_argument('--use_wandb', type=int, default=0)
+    parser.add_argument('--use_wandb', type=int, default=1)
     parser.add_argument('--wandb_user', type=str, default="none")
 
     cfg = edict()
@@ -108,7 +108,7 @@ def set_config():
         yaml.dump(edict_2_dict(cfg), f)
 
     if cfg.use_wandb:
-        wandb.init(project="Font-To-Image", entity=cfg.wandb_user,
+        wandb.init(project="text2svg",
                    config=cfg, name=f"{signature}", id=wandb.util.generate_id())
 
     if cfg.seed is not None:

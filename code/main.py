@@ -49,6 +49,7 @@ if __name__ == "__main__":
     # use GPU if available
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
+    print("using device", device)
 
     print("preprocessing")
     preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.script, cfg.level_of_cc)
@@ -77,6 +78,7 @@ if __name__ == "__main__":
         plt.close()
 
     if cfg.loss.tone.use_tone_loss:
+        print('initializing tone loss')
         tone_loss = ToneLoss(cfg)
         tone_loss.set_image_init(img_init)
 
@@ -92,6 +94,7 @@ if __name__ == "__main__":
     optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
 
     if cfg.loss.conformal.use_conformal_loss:
+        print('initializing conformal loss')
         conformal_loss = ConformalLoss(parameters, device, cfg.optimized_letter, shape_groups)
 
     lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_final, num_iter,

@@ -8,9 +8,9 @@ pip install kornia==0.6.8
 pip install wandb
 pip install shapely vharfbuzz
 pip install diffusers==0.8
-pip install easydict matplotlib
-pip install transformers scipy ftfy accelerate
-git clone https://github.com/BachiLi/diffvg.git
-cd diffvg
-git submodule update --init --recursive
-python setup.py install
+pip install easydict matplotlib 
+pip install transformers scipy ftfy accelerate filelock tqdm huggingface-hub
+# git clone https://github.com/BachiLi/diffvg.git
+# cd diffvg
+# git submodule update --init --recursive
+# python setup.py install

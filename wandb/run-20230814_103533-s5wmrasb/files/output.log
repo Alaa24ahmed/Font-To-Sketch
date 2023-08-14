@@ -1,0 +1,13 @@
+using device cuda
+preprocessing
+======= code/data/fonts/arabic/16.ttf =======
+Traceback (most recent call last):
+  File "code/main.py", line 55, in <module>
+    preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.script, cfg.level_of_cc)
+  File "/home/ubuntu/ai_dev/NST/text2svg/Font-To-Sketch/code/utils.py", line 74, in preprocess
+    chars = font_string_to_svgs_hb(init_path, font_path, word, target_control=target_cp,
+  File "/home/ubuntu/ai_dev/NST/text2svg/Font-To-Sketch/code/ttf.py", line 353, in font_string_to_svgs_hb
+    vhb = hb.Vharfbuzz(font)
+  File "/home/ubuntu/.conda/envs/ldm/lib/python3.8/site-packages/vharfbuzz/__init__.py", line 29, in __init__
+    with open(self.filename, "rb") as fontfile:
+FileNotFoundError: [Errno 2] No such file or directory: 'code/data/fonts/arabic/code/data/fonts/arabic/16.ttf.ttf'

@@ -1,0 +1,4 @@
+name: ldm
+channels:
+  - defaults
+prefix: /opt/miniconda/envs/ldm

@@ -21,6 +21,8 @@ class SDSLoss(nn.Module):
         self.pipe = StableDiffusionPipeline.from_pretrained(cfg.diffusion.model,
                                                        torch_dtype=torch.float16, use_auth_token=cfg.token)
         self.pipe = self.pipe.to(self.device)
+        self.img_init = None
+        self.latent_img_init = None
 
         # self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14").to(self.device)
         # self.clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
@@ -60,9 +62,23 @@ class SDSLoss(nn.Module):
         del self.pipe.tokenizer
         del self.pipe.text_encoder
 
+    def set_image_init(self, img_init):
+        img_init = img_init * 2. - 1.
+        with torch.cuda.amp.autocast():
+            self.latent_img_init = (self.pipe.vae.encode(img_init).latent_dist.sample())
+        self.latent_img_init = 0.18215 * self.latent_img_init  # scaling_factor * init_latents
+        # make latent_img_init doesn't require grad
+        self.latent_img_init = self.latent_img_init.detach()
+
 
     def forward(self, x_aug):
+
         sds_loss = 0
+
+        # generate latent_img_init
+        if self.latent_img_init is None:
+            raise ValueError("Image init is None")
+        
 
         # encode rendered image
         x = x_aug * 2. - 1.
@@ -97,9 +113,13 @@ class SDSLoss(nn.Module):
             grad_z = torch.nan_to_num(grad_z.detach().float(), 0.0, 0.0, 0.0)
 
         sds_loss = grad_z.clone() * latent_z
+        init_im_loss = self.latent_img_init.clone() * latent_z
         del grad_z
 
         sds_loss = sds_loss.sum(1).mean()
+        init_im_loss = init_im_loss.sum(1).mean()
+        sds_loss = sds_loss - init_im_loss
+
         return sds_loss
 
 

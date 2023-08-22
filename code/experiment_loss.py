@@ -50,8 +50,6 @@ def train_one_word(cfg):
     print("preprocessing")
     preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.script, cfg.level_of_cc)
 
-    if cfg.loss.use_sds_loss:
-        sds_loss = SDSLoss(cfg, device)
 
     h, w = cfg.render_size, cfg.render_size
 
@@ -68,10 +66,24 @@ def train_one_word(cfg):
     img_init = img_init[:, :, 3:4] * img_init[:, :, :3] + \
                torch.ones(img_init.shape[0], img_init.shape[1], 3, device=device) * (1 - img_init[:, :, 3:4])
     img_init = img_init[:, :, :3]
-    imshow = img_init.detach().cpu()
+    
+    if cfg.loss.use_sds_loss:
+        sds_loss = SDSLoss(cfg, device)
+        im_init = img_init.unsqueeze(0).permute(0, 3, 1, 2)  # HWC -> NCHW
+        im_init = im_init.repeat(cfg.batch_size, 1, 1, 1)
+        im_init = data_augs.forward(im_init)
+        sds_loss.set_image_init(im_init)
+
+
+    # reverse permute(0, 3, 1, 2)  # NCHW -> HWC
+    im_init = im_init.squeeze(0).permute(1, 2, 0)
+
+    imshow = im_init.detach().cpu()
     filename = os.path.join(
             cfg.experiment_dir, "init-png", "init.png")
     pydiffvg.imwrite(imshow, filename, gamma=gamma)
+    print("Saved image in directory: ", filename)
+
 
     if cfg.use_wandb:
         plt.imshow(img_init.detach().cpu())
@@ -201,15 +213,15 @@ if __name__ == "__main__":
     #     cfg.experiment_dir = f'./code/experiments/tone_dist_loss/{cfg.loss.tone.dist_loss_weight}'
     #     train_one_word(cfg)
 
-    cfg.loss.tone.dist_loss_weight = 200
-    pixel_dist_sigma = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-    cfg.loss.tone.dist_loss_weight = 200
-    for i in range(len(pixel_dist_sigma)):
-        if cfg.use_wandb:
-            wandb.log({"pixel_dist_sigma": pixel_dist_sigma[i]}, step=i)
-        cfg.loss.tone.pixel_dist_sigma = pixel_dist_sigma[i]
-        cfg.experiment_dir = f'./code/experiments/tone_dist_sigma/{cfg.loss.tone.pixel_dist_sigma}'
-        train_one_word(cfg)
+    # cfg.loss.tone.dist_loss_weight = 200
+    # pixel_dist_sigma = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    # cfg.loss.tone.dist_loss_weight = 200
+    # for i in range(len(pixel_dist_sigma)):
+    #     if cfg.use_wandb:
+    #         wandb.log({"pixel_dist_sigma": pixel_dist_sigma[i]}, step=i)
+    #     cfg.loss.tone.pixel_dist_sigma = pixel_dist_sigma[i]
+    #     cfg.experiment_dir = f'./code/experiments/tone_dist_sigma/{cfg.loss.tone.pixel_dist_sigma}'
+    #     train_one_word(cfg)
     
     # cfg.loss.tone.pixel_dist_sigma = 50
 
@@ -223,8 +235,8 @@ if __name__ == "__main__":
     #     cfg.experiment_dir = f'./code/experiments/angles_weight/{cfg.loss.conformal.angeles_w}'
     #     train_one_word(cfg)
 
-    # cfg.loss.tone.dist_loss_weight = 200
-    # cfg.loss.tone.pixel_dist_sigma = 200
-    # cfg.loss.conformal.angeles_w = 0.5
-    # cfg.experiment_dir = f'./code/experiments/combination/200_200_0.5'
-    # train_one_word(cfg)
+    cfg.loss.tone.dist_loss_weight = 200
+    cfg.loss.tone.pixel_dist_sigma = 60
+    cfg.loss.conformal.angeles_w = 0.5
+    cfg.experiment_dir = f'code/experiments/combination/123'
+    train_one_word(cfg)

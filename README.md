@@ -36,6 +36,7 @@ For more examples please see the files under `./images`
 
 
 ## Todos
-- [ ] Pass the initial generated font image through the Encoder
-- [ ] Calculate the similarity between the initial generated font image and the generated image
-- [ ] Use the similarity as a loss function to improve the generated image
+- [x] Pass the initial generated font image through the Encoder
+- [x] Calculate the similarity between the initial generated font image and the generated image
+- [x] Use the similarity as a loss function to improve the generated image
+- [ ] Inspect why the generated image is messed up after adding the new loss (add scaling factor?)

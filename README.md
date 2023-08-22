@@ -33,3 +33,9 @@ The first GIF you see above morphs the word 'car' in 5 languages into a sketch o
 The second GIF contains 7 outputs of the program when given the Arabic name of an animal in text and asked to morph it into a visual representation of the actual animal. The input of course can be any text and the output any concept.
 
 For more examples please see the files under `./images`
+
+
+## Todos
+- [ ] Pass the initial generated font image through the Encoder
+- [ ] Calculate the similarity between the initial generated font image and the generated image
+- [ ] Use the similarity as a loss function to improve the generated image

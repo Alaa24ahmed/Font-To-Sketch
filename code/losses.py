@@ -117,7 +117,7 @@ class SDSLoss(nn.Module):
         del grad_z
 
         sds_loss = sds_loss.sum(1).mean()
-        init_im_loss = init_im_loss.sum(1).mean()
+        init_im_loss = init_im_loss.sum(1).mean() * 0.2
         sds_loss = sds_loss - init_im_loss
 
         return sds_loss

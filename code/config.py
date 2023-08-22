@@ -107,9 +107,6 @@ def set_config():
     with open(osp.join(configfile), 'w') as f:
         yaml.dump(edict_2_dict(cfg), f)
 
-    if cfg.use_wandb:
-        wandb.init(project="text2svg",
-                   config=cfg, name=f"{signature}", id=wandb.util.generate_id())
 
     if cfg.seed is not None:
         random.seed(cfg.seed)

@@ -204,7 +204,7 @@ def train_one_word(cfg):
 if __name__ == "__main__":
     cfg = set_config()
     dist_loss_weight = [20, 50, 70, 100, 200]
-    cfg.save.video = False
+    cfg.save.video = True
     cfg.num_iter = 500
     # for i in range(len(dist_loss_weight)):
     #     if cfg.use_wandb:
@@ -238,5 +238,22 @@ if __name__ == "__main__":
     cfg.loss.tone.dist_loss_weight = 200
     cfg.loss.tone.pixel_dist_sigma = 60
     cfg.loss.conformal.angeles_w = 0.5
+
+
     cfg.experiment_dir = f'code/experiments/combination/123'
-    train_one_word(cfg)
+    cfg.word = '123'
+    cfg.optimized_letter = '2'
+
+
+    words = ['ثعلب', 'بطة', 'كتكوت', "ثعبان"]
+    concepts = ['fox', 'duck', 'chick', 'snake']
+    for i in range(len(words)):
+        cfg.word = words[i]
+        cfg.optimized_letter = words[i]
+        cfg.seed = concepts[i]
+        cfg.experiment_dir = f'code/experiments/combination/{cfg.word}_{cfg.semantic_concept}'
+        if cfg.use_wandb:
+            signature = f"{cfg.word}_{cfg.semantic_concept}_{cfg.seed}"
+            wandb.init(project="text2svg",
+                    config=cfg, name=f"{signature}", id=wandb.util.generate_id())
+        train_one_word(cfg)

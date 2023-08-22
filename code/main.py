@@ -73,9 +73,16 @@ if __name__ == "__main__":
                torch.ones(img_init.shape[0], img_init.shape[1], 3, device=device) * (1 - img_init[:, :, 3:4])
     img_init = img_init[:, :, :3]
     if cfg.use_wandb:
+        cfg_wandb = cfg.copy()
+        cfg_wandb.pop('sds_loss')
+        cfg_wandb.pop('dist_loss')
+        cfg_wandb.pop('loss')
+
+        wandb.log(cfg_wandb)
         plt.imshow(img_init.detach().cpu())
         wandb.log({"init": wandb.Image(plt)}, step=0)
         plt.close()
+
 
     if cfg.loss.tone.use_tone_loss:
         print('initializing tone loss')

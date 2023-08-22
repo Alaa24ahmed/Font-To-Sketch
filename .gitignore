@@ -6,3 +6,11 @@ code/data/init
 code/data/arabic-fonts/*.ttf
 examples
 transfer.py
+code/experiments
+code/experiments/*
+code/experiments/*/*
+code/experiments/*/*/*
+wandb
+wandb/*/*
+wandb/*/*/*
+*.zip

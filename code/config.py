@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument('--word', type=str, default="none", help="the text to work on")
     parser.add_argument('--script', type=str, default="arabic", help="script")
     parser.add_argument('--prompt_suffix', type=str, default="minimal flat 2d vector. lineal color. trending on artstation")
-    parser.add_argument('--optimized_letter', type=str, default="none", help="the letter in the word to optimize")
+    parser.add_argument('--optimized_letter', type=int, default=0, help="the letter in the word to optimize")
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--use_wandb', type=int, default=0)
     parser.add_argument('--wandb_user', type=str, default="none")
@@ -60,16 +60,18 @@ def parse_args():
         
     # cfg.log_dir = f"{args.log_dir}/{args.experiment}_{cfg.word}"
     cfg.log_dir = f"{args.log_dir}/{cfg.script}"
-    if args.optimized_letter in cfg.word:
-        cfg.optimized_letter = args.optimized_letter
-    else:
-      raise ValueError(f'letter should be in word')
+    cfg.optimized_letter_index = args.optimized_letter
+    cfg.optimized_letter = cfg.word[args.optimized_letter]
+    # if args.optimized_letter in cfg.word:
+    #     cfg.optimized_letter = args.optimized_letter
+    # else:
+    #   raise ValueError(f'letter should be in word')
     
     cfg.batch_size = args.batch_size
     cfg.token = args.token
     cfg.use_wandb = args.use_wandb
     cfg.wandb_user = args.wandb_user
-    cfg.letter = f"{cfg.font}_{args.optimized_letter}_scaled"
+    cfg.letter = f"{cfg.font}_{cfg.word}_{cfg.word[args.optimized_letter]}_scaled"
     cfg.target = f"code/data/init/{cfg.letter}"
     if ' ' in cfg.target:
         cfg.target = cfg.target.replace(' ', '_')

@@ -6,7 +6,7 @@ import kornia.augmentation as K
 import pydiffvg
 import save_svg
 import cv2
-from ttf import font_string_to_svgs, font_string_to_svgs_hb, normalize_letter_size
+from ttf import font_string_to_svgs, font_string_to_svgs_hb, normalize_letter_size, extract_svg_paths
 import torch
 import numpy as np
 
@@ -73,14 +73,17 @@ def preprocess(font, word, letter, script, level_of_cc=1):
     subdivision_thresh = None
     chars = font_string_to_svgs_hb(init_path, font_path, word, target_control=target_cp,
                         subdivision_thresh=subdivision_thresh)
-    normalize_letter_size(init_path, font_path, word, chars)
+    
+    extract_svg_paths(init_path, font_path, word, letter)
+    
+    normalize_letter_size(init_path, font_path, word, letter)
 
     # optimaize two adjacent letters
-    if len(letter) > 1:
-        subdivision_thresh = None
-        font_string_to_svgs_hb(init_path, font_path, letter, target_control=target_cp,
-                            subdivision_thresh=subdivision_thresh)
-        normalize_letter_size(init_path, font_path, letter, chars)
+    # if len(letter) > 1:
+    #     subdivision_thresh = None
+    #     font_string_to_svgs_hb(init_path, font_path, letter, target_control=target_cp,
+    #                         subdivision_thresh=subdivision_thresh)
+    #     normalize_letter_size(init_path, font_path, letter, chars)
 
     print("Done preprocess")
 
@@ -143,9 +146,9 @@ def combine_word(word, letter, font, experiment_dir):
     word_svg_scaled = f"./code/data/init/{font}_{word}_scaled.svg"
     canvas_width_word, canvas_height_word, shapes_word, shape_groups_word = pydiffvg.svg_to_scene(word_svg_scaled)
 
-    letter_ids = []
-    for l in letter:
-        letter_ids += get_letter_ids(l, word, shape_groups_word)
+    letter_ids = [letter]
+    # for l in letter:
+    #     letter_ids += get_letter_ids(l, word, shape_groups_word)
 
     w_min, w_max = min([torch.min(shapes_word[ids].points[:, 0]) for ids in letter_ids]), max(
         [torch.max(shapes_word[ids].points[:, 0]) for ids in letter_ids])

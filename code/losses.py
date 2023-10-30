@@ -145,8 +145,8 @@ class ConformalLoss:
     def get_angles(self, points: torch.Tensor) -> torch.Tensor:
         angles_ = []
         for i in range(len(self.faces)):
-            triangles = points[self.faces[i]]
-            triangles_roll_a = points[self.faces_roll_a[i]]
+            triangles = points[self.faces[i].to("cpu")]
+            triangles_roll_a = points[self.faces_roll_a[i].to("cpu")]
             edges = triangles_roll_a - triangles
             length = edges.norm(dim=-1)
             edges = edges / (length + 1e-1)[:, :, None]

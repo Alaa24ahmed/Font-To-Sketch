@@ -51,7 +51,7 @@ if __name__ == "__main__":
     device = pydiffvg.get_device()
 
     print("preprocessing")
-    preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.script, cfg.level_of_cc)
+    preprocess(cfg.font, cfg.word, cfg.optimized_letter_index, cfg.script, cfg.level_of_cc)
 
     if cfg.loss.use_sds_loss:
         sds_loss = SDSLoss(cfg, device)
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     save_svg.save_svg(
         filename, w, h, shapes, shape_groups)
 
-    # combine_word(cfg.word, cfg.optimized_letter, cfg.font, cfg.experiment_dir)
+    combine_word(cfg.word, len(cfg.word)- cfg.optimized_letter_index, cfg.font, cfg.experiment_dir)
 
     if cfg.save.image:
         filename = os.path.join(

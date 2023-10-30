@@ -9,6 +9,8 @@ import save_svg
 import vharfbuzz as hb
 from svgpathtools import svgstr2paths
 import xml.etree.ElementTree as ET
+import svgwrite
+
 
 
 device = torch.device("cuda" if (
@@ -55,14 +57,20 @@ def fix_single_svg(svg_path, all_word=False):
     output_path = f"{svg_path[:-4]}_scaled.svg"
     save_svg.save_svg(output_path, target_canvas_width, target_canvas_height, shapes, shape_groups)
 
-def normalize_letter_size(dest_path, font, txt, chars):
+def normalize_letter_size(dest_path, font, word, letter_index):
     fontname = os.path.splitext(os.path.basename(font))[0]
     # for i, c in enumerate(chars):
     #     fname = f"{dest_path}/{fontname}_{c}.svg"
     #     fname = fname.replace(" ", "_")
     #     fix_single_svg(fname)
 
-    fname = f"{dest_path}/{fontname}_{txt}.svg"
+    fname = f"{dest_path}/{fontname}_{word}_{word[letter_index]}.svg"
+    
+    fname = fname.replace(" ", "_")
+    fix_single_svg(fname, all_word=True)
+
+    fname = f"{dest_path}/{fontname}_{word}.svg"
+    
     fname = fname.replace(" ", "_")
     fix_single_svg(fname, all_word=True)
 
@@ -364,6 +372,56 @@ def font_string_to_svgs_hb(dest_path, font, txt, size=30, spacing=1.0, target_co
     f.write(svg)
     f.close()
     return None
+
+def extract_attributes(input_svg_file):
+    tree = ET.parse(input_svg_file)
+    root = tree.getroot()
+
+    xmlns = root.attrib.get('xmlns', '')
+    viewBox = root.attrib.get('viewBox', '')
+    transform = root.attrib.get('transform', '')
+
+    return xmlns, viewBox, transform
+def remove_namespace(element, namespace):
+    for elem in element.iter():
+        if '}' in elem.tag:
+            elem.tag = elem.tag.split('}', 1)[1]  # remove the namespace
+
+def extract_svg_paths(dest_path, font, word, letter_index):
+    fontname = os.path.splitext(os.path.basename(font))[0]
+    if not os.path.isdir(dest_path):
+        os.mkdir(dest_path)
+    word_svg = f"{dest_path}/{fontname}_{word}.svg"
+    # print(word_svg)
+    # tree = ET.parse(word_svg)
+    # root = tree.getroot()
+    # paths = root.findall(".//{http://www.w3.org/2000/svg}path")  # Find all 'path' elements
+    # for letter_index, letter_path in enumerate(paths):
+    #     # letter_path = paths[len(word) - letter_index -1]
+    #     new_svg = svgwrite.Drawing(f"{dest_path}/{fontname}_{word}_{word[letter_index]}.svg")
+    #     new_path = svgwrite.path.Path(d=letter_path.get('d'))
+    #     new_svg.add(new_path)
+    #     new_svg.save()
+        
+
+    tree = ET.parse(word_svg)
+    root = tree.getroot()
+    xmlns, viewBox, transform = extract_attributes(word_svg)
+
+    paths = root.findall(".//{http://www.w3.org/2000/svg}path")
+    letter_path = paths[len(word) - letter_index -1]
+    new_root = ET.Element("svg", xmlns=xmlns, viewBox=viewBox, transform=transform)
+    new_root.append(letter_path)
+    remove_namespace(new_root, xmlns)
+    new_tree = ET.ElementTree(new_root)
+    new_tree.write(f"{dest_path}/{fontname}_{word}_{word[letter_index]}.svg")
+        
+        
+
+# input_svg = ".\code\data\init\ArefRuqaa-Regular_حصان_scaled.svg"  # Replace with your SVG file
+# extract_paths(input_svg)
+
+
 
 if __name__ == '__main__':
 

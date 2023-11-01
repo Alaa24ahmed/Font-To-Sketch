@@ -390,7 +390,7 @@ def extract_svg_paths(dest_path, font, word, letter_index):
     xmlns, width, height = extract_attributes(word_svg)
 
     paths = root.findall(".//{http://www.w3.org/2000/svg}path")
-    letter_path = paths[len(word) - letter_index -1]
+    letter_path = paths[len(paths) - letter_index - 1]
     new_root = ET.Element("svg", xmlns=xmlns, width=width, height=height)
     new_root.append(letter_path)
     remove_namespace(new_root, xmlns)

@@ -9,6 +9,7 @@ import pydiffvg
 import save_svg
 from losses import SDSLoss, ToneLoss, ConformalLoss
 from config import set_config
+from ttf import combine_word_mod
 from utils import (
     check_and_create_dir,
     get_data_augs,
@@ -52,7 +53,7 @@ if __name__ == "__main__":
 
     print("preprocessing")
     preprocess(cfg.font, cfg.word, cfg.optimized_letter_index, cfg.script, cfg.level_of_cc)
-
+   
     if cfg.loss.use_sds_loss:
         sds_loss = SDSLoss(cfg, device)
 
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     save_svg.save_svg(
         filename, w, h, shapes, shape_groups)
 
-    combine_word(cfg.word, len(cfg.word)- cfg.optimized_letter_index, cfg.font, cfg.experiment_dir)
+    combine_word_mod(cfg.word, cfg.optimized_letter_index, cfg.font, cfg.experiment_dir)
 
     if cfg.save.image:
         filename = os.path.join(

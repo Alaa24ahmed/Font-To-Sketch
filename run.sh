@@ -12,3 +12,10 @@ python code/main.py --experiment "default" --script "arabic" --semantic_concept 
 python code/main.py --experiment "default" --script "arabic" --semantic_concept "Horse" --optimized_letter 1 --word "حصان" --seed 0 --use_wandb 1 --wandb_user "graduation-word-as-image"
 python code/main.py --experiment "default" --script "arabic" --semantic_concept "Horse" --optimized_letter 2 --word "حصان" --seed 0 --use_wandb 1 --wandb_user "graduation-word-as-image"
 python code/main.py --experiment "default" --script "arabic" --semantic_concept "Horse" --optimized_letter 3 --word "حصان" --seed 0 --use_wandb 1 --wandb_user "graduation-word-as-image"
+
+
+python code/main.py --experiment "default" --script "arabic" --semantic_concept "Cat" --optimized_letter 1 --word "قطة" --seed 0 --use_wandb 1 --wandb_user "graduation-word-as-image"
+python code/main.py --experiment "default" --script "arabic" --semantic_concept "Cat" --optimized_letter 2 --word "قطة" --seed 0 --use_wandb 1 --wandb_user "graduation-word-as-image"
+
+
+python code/main.py --experiment "default" --script "arabic" --semantic_concept "Penguin" --optimized_letter 2 --word "بطريق" --seed 0 --use_wandb 1 --wandb_user "graduation-word-as-image"

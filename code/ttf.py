@@ -10,6 +10,9 @@ import vharfbuzz as hb
 from svgpathtools import svgstr2paths
 import xml.etree.ElementTree as ET
 import svgwrite
+# import cairosvg
+import aspose.words as aw
+import aspose.pydrawing as pydraw
 
 
 
@@ -59,16 +62,6 @@ def fix_single_svg(svg_path, all_word=False):
 
 def normalize_letter_size(dest_path, font, word, letter_index):
     fontname = os.path.splitext(os.path.basename(font))[0]
-    # for i, c in enumerate(chars):
-    #     fname = f"{dest_path}/{fontname}_{c}.svg"
-    #     fname = fname.replace(" ", "_")
-    #     fix_single_svg(fname)
-
-    fname = f"{dest_path}/{fontname}_{word}_{word[letter_index]}.svg"
-    
-    fname = fname.replace(" ", "_")
-    fix_single_svg(fname, all_word=True)
-
     fname = f"{dest_path}/{fontname}_{word}.svg"
     
     fname = fname.replace(" ", "_")
@@ -378,10 +371,10 @@ def extract_attributes(input_svg_file):
     root = tree.getroot()
 
     xmlns = root.attrib.get('xmlns', '')
-    viewBox = root.attrib.get('viewBox', '')
-    transform = root.attrib.get('transform', '')
+    width = root.attrib.get('width', '')
+    height = root.attrib.get('height', '')
 
-    return xmlns, viewBox, transform
+    return xmlns, width, height
 def remove_namespace(element, namespace):
     for elem in element.iter():
         if '}' in elem.tag:
@@ -391,35 +384,56 @@ def extract_svg_paths(dest_path, font, word, letter_index):
     fontname = os.path.splitext(os.path.basename(font))[0]
     if not os.path.isdir(dest_path):
         os.mkdir(dest_path)
-    word_svg = f"{dest_path}/{fontname}_{word}.svg"
-    # print(word_svg)
-    # tree = ET.parse(word_svg)
-    # root = tree.getroot()
-    # paths = root.findall(".//{http://www.w3.org/2000/svg}path")  # Find all 'path' elements
-    # for letter_index, letter_path in enumerate(paths):
-    #     # letter_path = paths[len(word) - letter_index -1]
-    #     new_svg = svgwrite.Drawing(f"{dest_path}/{fontname}_{word}_{word[letter_index]}.svg")
-    #     new_path = svgwrite.path.Path(d=letter_path.get('d'))
-    #     new_svg.add(new_path)
-    #     new_svg.save()
-        
-
+    word_svg = f"{dest_path}/{fontname}_{word}_scaled.svg"
     tree = ET.parse(word_svg)
     root = tree.getroot()
-    xmlns, viewBox, transform = extract_attributes(word_svg)
+    xmlns, width, height = extract_attributes(word_svg)
 
     paths = root.findall(".//{http://www.w3.org/2000/svg}path")
     letter_path = paths[len(word) - letter_index -1]
-    new_root = ET.Element("svg", xmlns=xmlns, viewBox=viewBox, transform=transform)
+    new_root = ET.Element("svg", xmlns=xmlns, width=width, height=height)
     new_root.append(letter_path)
     remove_namespace(new_root, xmlns)
     new_tree = ET.ElementTree(new_root)
-    new_tree.write(f"{dest_path}/{fontname}_{word}_{word[letter_index]}.svg")
+    new_tree.write(f"{dest_path}/{fontname}_{word}_{word[letter_index]}_scaled.svg")
         
-        
+def combine_word_mod(word, letter, font, experiment_dir):
+    word_svg_scaled = f"./code/data/init/{font}_{word}_scaled.svg"
+    svg_result = os.path.join(experiment_dir, "output-svg", "output.svg")
 
-# input_svg = ".\code\data\init\ArefRuqaa-Regular_حصان_scaled.svg"  # Replace with your SVG file
-# extract_paths(input_svg)
+    
+    tree = ET.parse(word_svg_scaled)
+    root = tree.getroot()
+    xmlns, width, height = extract_attributes(word_svg_scaled)
+    namespace = {'svg': 'http://www.w3.org/2000/svg'}
+    paths = root.findall(".//svg:path", namespaces=namespace)
+    new_root = ET.Element("svg", xmlns=xmlns, width=width, height=height)
+    
+    letter_tree = ET.parse(svg_result)
+    letter_root = letter_tree.getroot()
+    letter_path = letter_root.findall(".//svg:path", namespaces=namespace)
+
+    for i, path in enumerate(paths):
+        if i == (len(paths) - letter - 1):
+            new_root.append(letter_path[0])
+        else:
+            new_root.append(path)
+    remove_namespace(new_root, xmlns)
+    new_tree = ET.ElementTree(new_root)
+
+    # Create and save a simple document
+    doc = aw.Document()
+    builder = aw.DocumentBuilder(doc)
+    shape = builder.insert_image(f"{experiment_dir}/{font}_{word}_{letter}.svg")
+    shape.fill.back_color = pydraw.Color.white
+    pageSetup = builder.page_setup
+    pageSetup.page_width = shape.width
+    pageSetup.page_height = shape.height
+    pageSetup.top_margin = 0
+    pageSetup.left_margin = 0
+    pageSetup.bottom_margin = 0
+    pageSetup.right_margin = 0
+    doc.save(f"{experiment_dir}/{font}_{word}_{letter}.png")
 
 
 

@@ -74,9 +74,11 @@ def preprocess(font, word, letter, script, level_of_cc=1):
     chars = font_string_to_svgs_hb(init_path, font_path, word, target_control=target_cp,
                         subdivision_thresh=subdivision_thresh)
     
+    normalize_letter_size(init_path, font_path, word, letter)
+
+    
     extract_svg_paths(init_path, font_path, word, letter)
     
-    normalize_letter_size(init_path, font_path, word, letter)
 
     # optimaize two adjacent letters
     # if len(letter) > 1:

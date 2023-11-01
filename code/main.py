@@ -25,10 +25,13 @@ warnings.filterwarnings("ignore")
 pydiffvg.set_print_timing(False)
 gamma = 1.0
 
+from cp import process_svg
 
 def init_shapes(svg_path, trainable: Mapping[str, bool]):
 
     svg = f'{svg_path}.svg'
+    process_svg(svg)
+
     canvas_width, canvas_height, shapes_init, shape_groups_init = pydiffvg.svg_to_scene(svg)
 
     parameters = edict()
@@ -66,7 +69,6 @@ if __name__ == "__main__":
     # initialize shape
     print('initializing shape')
     shapes, shape_groups, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable)
-
     scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes, shape_groups)
     img_init = render(w, h, 2, 2, 0, None, *scene_args)
     img_init = img_init[:, :, 3:4] * img_init[:, :, :3] + \

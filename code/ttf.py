@@ -421,6 +421,9 @@ def combine_word_mod(word, letter, font, experiment_dir):
     remove_namespace(new_root, xmlns)
     new_tree = ET.ElementTree(new_root)
 
+    new_tree.write(f"{experiment_dir}/{font}_{word}_{letter}.svg")
+
+
     # Create and save a simple document
     doc = aw.Document()
     builder = aw.DocumentBuilder(doc)

@@ -50,7 +50,6 @@ def train_one_word(cfg):
     print("preprocessing")
     preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.script, cfg.level_of_cc)
 
-
     h, w = cfg.render_size, cfg.render_size
 
     data_augs = get_data_augs(cfg.cut_size)
@@ -245,8 +244,8 @@ if __name__ == "__main__":
     cfg.optimized_letter = '2'
 
 
-    words = ['ثعلب', 'بطة', 'كتكوت', "ثعبان"]
-    concepts = ['fox', 'duck', 'chick', 'snake']
+    words = ['اخطبوط','ثعلب', 'بطة', 'كتكوت', "ثعبان"]
+    concepts = ['octopus','fox', 'duck', 'chick', 'snake']
     for i in range(len(words)):
         cfg.word = words[i]
         cfg.optimized_letter = words[i]

@@ -24,7 +24,6 @@ warnings.filterwarnings("ignore")
 pydiffvg.set_print_timing(False)
 gamma = 1.0
 
-
 def init_shapes(svg_path, trainable: Mapping[str, bool]):
 
     svg = f'{svg_path}.svg'
@@ -45,7 +44,8 @@ def init_shapes(svg_path, trainable: Mapping[str, bool]):
 if __name__ == "__main__":
     
     cfg = set_config()
-
+    # cfg.seed = 'octopus'
+    print(cfg.font)
     # use GPU if available
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
@@ -53,14 +53,9 @@ if __name__ == "__main__":
 
     print("preprocessing")
     preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.script, cfg.level_of_cc)
-
-    if cfg.loss.use_sds_loss:
-        sds_loss = SDSLoss(cfg, device)
-
+    
     h, w = cfg.render_size, cfg.render_size
-
     data_augs = get_data_augs(cfg.cut_size)
-
     render = pydiffvg.RenderFunction.apply
 
     # initialize shape
@@ -72,6 +67,25 @@ if __name__ == "__main__":
     img_init = img_init[:, :, 3:4] * img_init[:, :, :3] + \
                torch.ones(img_init.shape[0], img_init.shape[1], 3, device=device) * (1 - img_init[:, :, 3:4])
     img_init = img_init[:, :, :3]
+    
+    if cfg.loss.use_sds_loss:
+        sds_loss = SDSLoss(cfg, device)
+        im_init = img_init.unsqueeze(0).permute(0, 3, 1, 2)  # HWC -> NCHW
+        im_init = im_init.repeat(cfg.batch_size, 1, 1, 1)
+        im_init = data_augs.forward(im_init)
+        sds_loss.set_image_init(im_init)
+
+
+    # reverse permute(0, 3, 1, 2)  # NCHW -> HWC
+    im_init = im_init.squeeze(0).permute(1, 2, 0)
+
+    imshow = im_init.detach().cpu()
+    filename = os.path.join(
+            cfg.experiment_dir, "init-png", "init.png")
+    pydiffvg.imwrite(imshow, filename, gamma=gamma)
+    print("Saved image in directory: ", filename)
+
+
     if cfg.use_wandb:
         cfg_wandb = cfg.copy()
         cfg_wandb.pop('sds_loss')

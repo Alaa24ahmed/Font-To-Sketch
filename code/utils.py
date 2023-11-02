@@ -49,21 +49,44 @@ def preprocess(font, word, letter, script, level_of_cc=1):
     if level_of_cc == 0:
         target_cp = None
     else:
-        target_cp = {"A": 120, "B": 120, "C": 100, "D": 100,
-                     "E": 120, "F": 120, "G": 120, "H": 120,
-                     "I": 35, "J": 80, "K": 100, "L": 80,
-                     "M": 100, "N": 100, "O": 100, "P": 120,
-                     "Q": 120, "R": 130, "S": 110, "T": 90,
-                     "U": 100, "V": 100, "W": 100, "X": 130,
-                     "Y": 120, "Z": 120,
-                     "a": 120, "b": 120, "c": 100, "d": 100,
-                     "e": 120, "f": 120, "g": 120, "h": 120,
-                     "i": 35, "j": 80, "k": 100, "l": 80,
-                     "m": 100, "n": 100, "o": 100, "p": 120,
-                     "q": 120, "r": 130, "s": 110, "t": 90,
-                     "u": 100, "v": 100, "w": 100, "x": 130,
-                     "y": 120, "z": 120
-                     }
+        target_cp = {
+            # English letters
+            "A": 120, "B": 120, "C": 100, "D": 100,
+            "E": 120, "F": 120, "G": 120, "H": 120,
+            "I": 35, "J": 80, "K": 100, "L": 80,
+            "M": 100, "N": 100, "O": 100, "P": 120,
+            "Q": 120, "R": 130, "S": 110, "T": 90,
+            "U": 100, "V": 100, "W": 100, "X": 130,
+            "Y": 120, "Z": 120,
+            
+            # Arabic letters (example with placeholders, adjust the counts as needed)
+            # "ا": 150, "ب": 140, "ت": 130, "ث": 140,
+            # "ج": 140, "ح": 150, "خ": 150, "د": 140,
+            # "ذ": 130, "ر": 140, "ز": 140, "س": 130,
+            # "ش": 150, "ص": 150, "ض": 140, "ط": 140,
+            # "ظ": 130, "ع": 140, "غ": 140, "ف": 130,
+            # "ق": 150, "ك": 150, "ل": 140, "م": 140,
+            # "ن": 130, "ه": 140, "و": 140, "ي": 130,
+            # Add more Arabic letters and their target CP counts
+        }
+
+        # target_cp = {"A": 120, "B": 120, "C": 100, "D": 100,
+        #              "E": 120, "F": 120, "G": 120, "H": 120,
+        #              "I": 35, "J": 80, "K": 100, "L": 80,
+        #              "M": 100, "N": 100, "O": 100, "P": 120,
+        #              "Q": 120, "R": 130, "S": 110, "T": 90,
+        #              "U": 100, "V": 100, "W": 100, "X": 130,
+        #              "Y": 120, "Z": 120,
+        #              "a": 120, "b": 120, "c": 100, "d": 100,
+        #              "e": 120, "f": 120, "g": 120, "h": 120,
+        #              "i": 35, "j": 80, "k": 100, "l": 80,
+        #              "m": 100, "n": 100, "o": 100, "p": 120,
+        #              "q": 120, "r": 130, "s": 110, "t": 90,
+        #              "u": 100, "v": 100, "w": 100, "x": 130,
+        #              "y": 120, "z": 120, 
+                     
+        #              }
+        print(level_of_cc)
         target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
         
     print(f"======= {font} =======")
@@ -71,12 +94,16 @@ def preprocess(font, word, letter, script, level_of_cc=1):
 
     init_path = f"code/data/init"
     subdivision_thresh = None
+    print("word: ", word)
     chars = font_string_to_svgs_hb(init_path, font_path, word, target_control=target_cp,
                         subdivision_thresh=subdivision_thresh)
+    print("chars")
+    print(chars)
     normalize_letter_size(init_path, font_path, word, chars)
-
+    print("letter: ", letter)
     # optimaize two adjacent letters
     if len(letter) > 1:
+        print("true")
         subdivision_thresh = None
         font_string_to_svgs_hb(init_path, font_path, letter, target_control=target_cp,
                             subdivision_thresh=subdivision_thresh)

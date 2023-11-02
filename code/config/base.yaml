@@ -17,7 +17,7 @@ baseline:
   num_iter: 500
   render_size: 600
   cut_size: 512
-  level_of_cc: 0 # 0 - original number of cc / 1 - recommended / 2 - more control points
+  level_of_cc: 2 # 0 - original number of cc / 1 - recommended / 2 - more control points
   seed: 0
   diffusion:
     model: "runwayml/stable-diffusion-v1-5" #"stabilityai/stable-diffusion-2-1"
@@ -32,15 +32,15 @@ baseline:
 
 default:
   parent_config: baseline
-  level_of_cc: 1
+  level_of_cc: 2
   num_iter: 500
   loss:
     tone:
       use_tone_loss: true
-      dist_loss_weight: 100
+      dist_loss_weight: 200
       pixel_dist_kernel_blur: 201
       pixel_dist_sigma: 60
     conformal:
       use_conformal_loss: true
-      angeles_w: 0.5
+      angeles_w: 0.5      #try 0.7 
 

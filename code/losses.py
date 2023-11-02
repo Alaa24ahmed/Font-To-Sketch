@@ -87,6 +87,7 @@ class SDSLoss(nn.Module):
         latent_z = 0.18215 * init_latent_z  # scaling_factor * init_latents
 
         with torch.inference_mode():
+            self.eval()
             # sample timesteps
             timestep = torch.randint(
                 low=50,
@@ -113,13 +114,25 @@ class SDSLoss(nn.Module):
             grad_z = torch.nan_to_num(grad_z.detach().float(), 0.0, 0.0, 0.0)
 
         sds_loss = grad_z.clone() * latent_z
+        # print(grad_z.shape)
+        # print(latent_z.shape)
+        # print(sds_loss.shape)
         init_im_loss = self.latent_img_init.clone() * latent_z
         del grad_z
-
+        
+        # loss = nn.MSELoss()
+        # input = self.latent_img_init.clone()
+        # target = latent_z
+        # output = loss(input, target)
+        
+        
         sds_loss = sds_loss.sum(1).mean()
         init_im_loss = init_im_loss.sum(1).mean() * 0.2
+        # sds_loss = sds_loss + output * 10
+ 
         sds_loss = sds_loss - init_im_loss
-
+        print("hereeee")
+        print(sds_loss)
         return sds_loss
 
 
@@ -140,15 +153,17 @@ class ToneLoss(nn.Module):
 
     def get_scheduler(self, step=None):
         if step is not None:
+            # return 100 
             return self.dist_loss_weight * np.exp(-(1/5)*((step-300)/(20)) ** 2)
         else:
             return self.dist_loss_weight
 
     def forward(self, cur_raster, step=None):
         blurred_cur = self.blurrer(cur_raster)
+        self.eval()
         return self.mse_loss(self.init_blurred.detach(), blurred_cur) * self.get_scheduler(step)
-            
-
+        
+        
 class ConformalLoss:
     def __init__(self, parameters: EasyDict, device: torch.device, target_letter: str, shape_groups):
         self.parameters = parameters

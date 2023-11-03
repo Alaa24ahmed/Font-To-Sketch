@@ -9,6 +9,11 @@ import save_svg
 import vharfbuzz as hb
 from svgpathtools import svgstr2paths
 import xml.etree.ElementTree as ET
+import svgwrite
+# import cairosvg
+import aspose.words as aw
+import aspose.pydrawing as pydraw
+
 
 
 device = torch.device("cuda" if (
@@ -55,17 +60,13 @@ def fix_single_svg(svg_path, all_word=False):
     output_path = f"{svg_path[:-4]}_scaled.svg"
     save_svg.save_svg(output_path, target_canvas_width, target_canvas_height, shapes, shape_groups)
 
-def normalize_letter_size(dest_path, font, txt, chars):
+def normalize_letter_size(dest_path, font, word, letter_index):
     fontname = os.path.splitext(os.path.basename(font))[0]
-    # for i, c in enumerate(chars):
-    #     fname = f"{dest_path}/{fontname}_{c}.svg"
-    #     fname = fname.replace(" ", "_")
-    #     fix_single_svg(fname)
-
-    fname = f"{dest_path}/{fontname}_{txt}.svg"
+    fname = f"{dest_path}/{fontname}_{word}.svg"
+    
     fname = fname.replace(" ", "_")
     fix_single_svg(fname, all_word=True)
-
+    
 
 def glyph_to_cubics(face, x=0, y=0):
     ''' Convert current font face glyph to cubic beziers'''
@@ -365,6 +366,78 @@ def font_string_to_svgs_hb(dest_path, font, txt, size=30, spacing=1.0, target_co
     f.close()
     return None
 
+def extract_attributes(input_svg_file):
+    tree = ET.parse(input_svg_file)
+    root = tree.getroot()
+
+    xmlns = root.attrib.get('xmlns', '')
+    width = root.attrib.get('width', '')
+    height = root.attrib.get('height', '')
+
+    return xmlns, width, height
+def remove_namespace(element, namespace):
+    for elem in element.iter():
+        if '}' in elem.tag:
+            elem.tag = elem.tag.split('}', 1)[1]  # remove the namespace
+
+def extract_svg_paths(dest_path, font, word, letter_index):
+    fontname = os.path.splitext(os.path.basename(font))[0]
+    if not os.path.isdir(dest_path):
+        os.mkdir(dest_path)
+    word_svg = f"{dest_path}/{fontname}_{word}_scaled.svg"
+    tree = ET.parse(word_svg)
+    root = tree.getroot()
+    xmlns, width, height = extract_attributes(word_svg)
+
+    paths = root.findall(".//{http://www.w3.org/2000/svg}path")
+    letter_path = paths[len(paths) - letter_index - 1]
+    new_root = ET.Element("svg", xmlns=xmlns, width=width, height=height)
+    new_root.append(letter_path)
+    remove_namespace(new_root, xmlns)
+    new_tree = ET.ElementTree(new_root)
+    new_tree.write(f"{dest_path}/{fontname}_{word}_{word[letter_index]}_scaled.svg")
+        
+def combine_word_mod(word, letter, font, experiment_dir):
+    word_svg_scaled = f"./code/data/init/{font}_{word}_scaled.svg"
+    svg_result = os.path.join(experiment_dir, "output-svg", "output.svg")
+
+    
+    tree = ET.parse(word_svg_scaled)
+    root = tree.getroot()
+    xmlns, width, height = extract_attributes(word_svg_scaled)
+    namespace = {'svg': 'http://www.w3.org/2000/svg'}
+    paths = root.findall(".//svg:path", namespaces=namespace)
+    new_root = ET.Element("svg", xmlns=xmlns, width=width, height=height)
+    
+    letter_tree = ET.parse(svg_result)
+    letter_root = letter_tree.getroot()
+    letter_path = letter_root.findall(".//svg:path", namespaces=namespace)
+
+    for i, path in enumerate(paths):
+        if i == (len(paths) - letter - 1):
+            new_root.append(letter_path[0])
+        else:
+            new_root.append(path)
+    remove_namespace(new_root, xmlns)
+    new_tree = ET.ElementTree(new_root)
+
+    new_tree.write(f"{experiment_dir}/{font}_{word}_{letter}.svg")
+
+
+    # Create and save a simple document
+    doc = aw.Document()
+    builder = aw.DocumentBuilder(doc)
+    shape = builder.insert_image(f"{experiment_dir}/{font}_{word}_{letter}.svg")
+    shape.fill.back_color = pydraw.Color.white
+    pageSetup = builder.page_setup
+    pageSetup.page_width = shape.width
+    pageSetup.page_height = shape.height
+    pageSetup.top_margin = 0
+    pageSetup.left_margin = 0
+    pageSetup.bottom_margin = 0
+    pageSetup.right_margin = 0
+    doc.save(f"{experiment_dir}/{font}_{word}_{letter}.png")
+
 if __name__ == '__main__':
 
     fonts = ["KaushanScript-Regular"]
@@ -403,7 +476,6 @@ if __name__ == '__main__':
         normalize_letter_size(output_path, font_path, txt)
 
         print("DONE")
-
 
 
 

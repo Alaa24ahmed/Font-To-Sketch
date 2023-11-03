@@ -9,6 +9,8 @@ import pydiffvg
 import save_svg
 from losses import SDSLoss, ToneLoss, ConformalLoss
 from config import set_config
+from ttf import combine_word_mod
+from cp import process_svg
 from utils import (
     check_and_create_dir,
     get_data_augs,
@@ -27,6 +29,7 @@ gamma = 1.0
 def init_shapes(svg_path, trainable: Mapping[str, bool]):
 
     svg = f'{svg_path}.svg'
+    process_svg(svg)
     canvas_width, canvas_height, shapes_init, shape_groups_init = pydiffvg.svg_to_scene(svg)
 
     parameters = edict()
@@ -45,14 +48,14 @@ if __name__ == "__main__":
     
     cfg = set_config()
     # cfg.seed = 'octopus'
-    print(cfg.font)
+    print("font: ",cfg.font)
     # use GPU if available
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
     print("using device", device)
 
     print("preprocessing")
-    preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.script, cfg.level_of_cc)
+    preprocess(cfg.font, cfg.word, cfg.optimized_letter_index, cfg.script, cfg.level_of_cc)
     
     h, w = cfg.render_size, cfg.render_size
     data_augs = get_data_augs(cfg.cut_size)
@@ -87,12 +90,12 @@ if __name__ == "__main__":
 
 
     if cfg.use_wandb:
-        cfg_wandb = cfg.copy()
-        cfg_wandb.pop('sds_loss')
-        cfg_wandb.pop('dist_loss')
-        cfg_wandb.pop('loss')
+        # cfg_wandb = cfg.copy()
+        # cfg_wandb.pop('sds_loss')
+        # cfg_wandb.pop('dist_loss')
+        # cfg_wandb.pop('loss')
 
-        wandb.log(cfg_wandb)
+        # wandb.log(cfg_wandb)
         plt.imshow(img_init.detach().cpu())
         wandb.log({"init": wandb.Image(plt)}, step=0)
         plt.close()
@@ -185,8 +188,7 @@ if __name__ == "__main__":
     save_svg.save_svg(
         filename, w, h, shapes, shape_groups)
 
-    # combine_word(cfg.word, cfg.optimized_letter, cfg.font, cfg.experiment_dir)
-
+    combine_word_mod(cfg.word, cfg.optimized_letter_index, cfg.font, cfg.experiment_dir)
     if cfg.save.image:
         filename = os.path.join(
             cfg.experiment_dir, "output-png", "output.png")
@@ -204,3 +206,4 @@ if __name__ == "__main__":
 
     if cfg.use_wandb:
         wandb.finish()
+

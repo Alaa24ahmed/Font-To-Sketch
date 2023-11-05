@@ -15,7 +15,6 @@ import aspose.words as aw
 import aspose.pydrawing as pydraw
 
 
-
 device = torch.device("cuda" if (
         torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu")
 
@@ -390,12 +389,14 @@ def extract_svg_paths(dest_path, font, word, letter_index):
     xmlns, width, height = extract_attributes(word_svg)
 
     paths = root.findall(".//{http://www.w3.org/2000/svg}path")
-    letter_path = paths[len(paths) - letter_index - 1]
     new_root = ET.Element("svg", xmlns=xmlns, width=width, height=height)
-    new_root.append(letter_path)
+    for i in letter_index:
+        letter_path = paths[len(paths) - int(i) - 1]
+        new_root.append(letter_path)
     remove_namespace(new_root, xmlns)
     new_tree = ET.ElementTree(new_root)
-    new_tree.write(f"{dest_path}/{fontname}_{word}_{word[letter_index]}_scaled.svg")
+    letter_name = ''.join([str(elem) for elem in letter_index])
+    new_tree.write(f"{dest_path}/{fontname}_{word}_{letter_name }_scaled.svg")
         
 def combine_word_mod(word, letter, font, experiment_dir):
     word_svg_scaled = f"./code/data/init/{font}_{word}_scaled.svg"
@@ -412,10 +413,11 @@ def combine_word_mod(word, letter, font, experiment_dir):
     letter_tree = ET.parse(svg_result)
     letter_root = letter_tree.getroot()
     letter_path = letter_root.findall(".//svg:path", namespaces=namespace)
-
+    j = 0
     for i, path in enumerate(paths):
-        if i == (len(paths) - letter - 1):
-            new_root.append(letter_path[0])
+        if abs( i - len(paths) +1) in letter:
+            new_root.append(letter_path[j])
+            j += 1
         else:
             new_root.append(path)
     remove_namespace(new_root, xmlns)

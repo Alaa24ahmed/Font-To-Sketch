@@ -55,7 +55,7 @@ if __name__ == "__main__":
     print("using device", device)
 
     print("preprocessing")
-    preprocess(cfg.font, cfg.word, cfg.optimized_letter_index, cfg.script, cfg.level_of_cc)
+    preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.script, cfg.level_of_cc)
     
     h, w = cfg.render_size, cfg.render_size
     data_augs = get_data_augs(cfg.cut_size)
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     save_svg.save_svg(
         filename, w, h, shapes, shape_groups)
 
-    combine_word_mod(cfg.word, cfg.optimized_letter_index, cfg.font, cfg.experiment_dir)
+    combine_word_mod(cfg.word, cfg.optimized_letter, cfg.font, cfg.experiment_dir)
     if cfg.save.image:
         filename = os.path.join(
             cfg.experiment_dir, "output-png", "output.png")

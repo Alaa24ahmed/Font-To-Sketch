@@ -131,8 +131,6 @@ class SDSLoss(nn.Module):
         # sds_loss = sds_loss + output * 10
  
         sds_loss = sds_loss - init_im_loss
-        print("hereeee")
-        print(sds_loss)
         return sds_loss
 
 

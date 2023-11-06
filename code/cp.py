@@ -22,12 +22,17 @@ def double_points(svg_path, min_control_points):
     tree = ET.parse(svg_path)
     root = tree.getroot()
     done = True  
-    for path in root.findall(".//path"):
+    paths =  root.findall(".//path")
+    if not paths:
+        paths = root.findaa(".//{http://www.w3.org/2000/svg}path")
+    for path in paths:
         d = path.get('d')
         new_d = ''
         commands = parse_path(d)
+        print("initial length: ", len(commands))
         if(len(commands) > min_control_points):
-            break
+            print("final length: ", len(commands))
+            continue
         done = False
         for command in commands:
             command_name = str(command).split('(', 1)[0]
@@ -64,6 +69,6 @@ def double_points(svg_path, min_control_points):
     tree.write(svg_path)
     return done
 
-def process_svg(svg_path, min_control_points = 120):
+def process_svg(svg_path, min_control_points = 100):
     while(not double_points(svg_path, min_control_points)):
         pass

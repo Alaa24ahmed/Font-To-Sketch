@@ -110,8 +110,7 @@ def set_config():
         yaml.dump(edict_2_dict(cfg), f)
 
     if cfg.use_wandb:
-        wandb.init(project="Font-To-Image", entity=cfg.wandb_user,
-                   config=cfg, name=f"{signature}", id=wandb.util.generate_id())
+        wandb.init(project="Font-To-Image", entity=cfg.wandb_user, name=f"{cfg.semantic_concept}_{cfg.seed}_{cfg.letter_name}", id=wandb.util.generate_id())
 
     if cfg.seed is not None:
         random.seed(cfg.seed)

@@ -10,7 +10,6 @@ import save_svg
 from losses import SDSLoss, ToneLoss, ConformalLoss
 from config import set_config
 from ttf import combine_word_mod
-from cp import process_svg
 from utils import (
     check_and_create_dir,
     get_data_augs,
@@ -29,7 +28,6 @@ gamma = 1.0
 def init_shapes(svg_path, trainable: Mapping[str, bool]):
 
     svg = f'{svg_path}.svg'
-    process_svg(svg)
     canvas_width, canvas_height, shapes_init, shape_groups_init = pydiffvg.svg_to_scene(svg)
 
     parameters = edict()

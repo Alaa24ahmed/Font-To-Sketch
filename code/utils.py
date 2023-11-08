@@ -6,7 +6,7 @@ import kornia.augmentation as K
 import pydiffvg
 import save_svg
 import cv2
-from ttf import font_string_to_svgs, font_string_to_svgs_hb, normalize_letter_size, extract_svg_paths
+from ttf import font_string_to_svgs, normalize_letter_size, extract_svg_paths
 import torch
 import numpy as np
 
@@ -64,6 +64,15 @@ def preprocess(font, word, letter, script, level_of_cc=1):
                      "u": 100, "v": 100, "w": 100, "x": 130,
                      "y": 120, "z": 120
                      }
+        
+        # Arabic letters (example with placeholders, adjust the counts as needed)
+        target_cp = {"ا": 120, "ب": 80, "ت": 80, "ث": 80,
+             "ج": 80, "ح": 80, "خ": 80, "د": 60,
+            "ذ": 60, "ر": 60, "ز": 60, "س": 100,
+            "ش": 100, "ص": 100, "ض": 100, "ط": 120,
+            "ظ": 120, "ع": 100, "غ": 100, "ف": 100,
+            "ق": 100, "ك": 100, "ل": 100, "م": 100,
+            "ن": 100, "ه": 100, "و": 100, "ي": 100, "ة": 60}
         target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
         
     print(f"======= {font} =======")
@@ -72,7 +81,8 @@ def preprocess(font, word, letter, script, level_of_cc=1):
     init_path = f"code/data/init"
     subdivision_thresh = None
     print("word: ", word)
-    chars = font_string_to_svgs_hb(init_path, font_path, word, target_control=target_cp,
+    
+    font_string_to_svgs(init_path, font_path, word, target_control=target_cp,
                         subdivision_thresh=subdivision_thresh)
     normalize_letter_size(init_path, font_path, word, letter)
 

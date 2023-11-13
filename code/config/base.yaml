@@ -42,6 +42,6 @@ default:
       pixel_dist_sigma: 60
     conformal:
       use_conformal_loss: true
-      angeles_w: 2
+      angeles_w: 0.5
 
 

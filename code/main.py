@@ -97,7 +97,8 @@ if __name__ == "__main__":
         im_init = data_augs.forward(im_init)
         sds_loss.set_image_init(im_init)
 
-    content_loss = ContentLoss(cfg, im_init)
+    if cfg.use_content_loss:
+        content_loss = ContentLoss(cfg, im_init)
 
     im_init = im_init.squeeze(0).permute(1, 2, 0)
 
@@ -218,7 +219,9 @@ if __name__ == "__main__":
     check_and_create_dir(filename)
     save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
-    combine_word_mod(cfg.target, cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir)
+    combine_word_mod(
+        cfg.target, cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir
+    )
     if cfg.save.image:
         filename = os.path.join(cfg.experiment_dir, "output-png", "output.png")
         check_and_create_dir(filename)

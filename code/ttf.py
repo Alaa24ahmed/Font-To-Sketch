@@ -297,6 +297,7 @@ def combine_word_mod(svg_path, word, letter, font, experiment_dir):
 
 
 if __name__ == "__main__":
+    pass
     # combine_word_mod("/home/alaa/projects/me/latest/Font-To-Sketch/code/data/init/06_موسيقى_01_scaled", "موسيقى" , [0,1], "06", "/home/alaa/projects/me/latest/Font-To-Sketch/output/arabic/06_موسيقى_01_dot_loss_0.2_content_loss0_angels_loss0.5_seed_42" )
     # fonts = ["ArefRuqaa-Regular"]
     # level_of_cc = 1

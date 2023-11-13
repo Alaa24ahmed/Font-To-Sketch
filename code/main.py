@@ -218,7 +218,7 @@ if __name__ == "__main__":
     check_and_create_dir(filename)
     save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
-    combine_word_mod(cfg.target , cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir)
+    combine_word_mod(cfg.target, cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir)
     if cfg.save.image:
         filename = os.path.join(cfg.experiment_dir, "output-png", "output.png")
         check_and_create_dir(filename)

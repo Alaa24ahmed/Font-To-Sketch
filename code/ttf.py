@@ -243,7 +243,11 @@ def extract_svg_paths(dest_path, letters):
 
 
 def combine_word_mod(svg_path, word, letter, font, experiment_dir):
-    word_svg_scaled = f"{svg_path}.svg"
+    svg_path = svg_path[:-7]
+    word_svg= f"{svg_path}.svg"
+    normalize_svg_size(svg_path)
+    word_svg_scaled = f"{svg_path}_scaled.svg"
+    print(word_svg_scaled)
     svg_result = os.path.join(experiment_dir, "output-svg", "output.svg")
 
     tree = ET.parse(word_svg_scaled)
@@ -258,6 +262,7 @@ def combine_word_mod(svg_path, word, letter, font, experiment_dir):
     letter_path = letter_root.findall(".//svg:path", namespaces=namespace)
     j = 0
     for i, path in enumerate(paths):
+        print("path:", path)
         if abs(i - len(paths) + 1) in letter:
             new_root.append(letter_path[j])
             j += 1
@@ -281,95 +286,96 @@ def combine_word_mod(svg_path, word, letter, font, experiment_dir):
     pageSetup.bottom_margin = 0
     pageSetup.right_margin = 0
     doc.save(f"{experiment_dir}/{font}_{word}_{letter}.png")
-    if cfg.use_wandb:
-        wandb.log(
-            {
-                "Compined": wandb.Image(
-                    plt.imread(f"{experiment_dir}/{font}_{word}_{letter}.png")
-                )
-            }
-        )
+    # if cfg.use_wandb:
+    #     wandb.log(
+    #         {
+    #             "Compined": wandb.Image(
+    #                 plt.imread(f"{experiment_dir}/{font}_{word}_{letter}.png")
+    #             )
+    #         }
+    #     )
 
 
 if __name__ == "__main__":
-    fonts = ["ArefRuqaa-Regular"]
-    level_of_cc = 1
+    # combine_word_mod("/home/alaa/projects/me/latest/Font-To-Sketch/code/data/init/06_موسيقى_01_scaled", "موسيقى" , [0,1], "06", "/home/alaa/projects/me/latest/Font-To-Sketch/output/arabic/06_موسيقى_01_dot_loss_0.2_content_loss0_angels_loss0.5_seed_42" )
+    # fonts = ["ArefRuqaa-Regular"]
+    # level_of_cc = 1
 
-    if level_of_cc == 0:
-        target_cp = None
+    # if level_of_cc == 0:
+    #     target_cp = None
 
-    else:
-        target_cp = {
-            "A": 120,
-            "B": 120,
-            "C": 100,
-            "D": 100,
-            "E": 120,
-            "F": 120,
-            "G": 120,
-            "H": 120,
-            "I": 35,
-            "J": 80,
-            "K": 100,
-            "L": 80,
-            "M": 100,
-            "N": 100,
-            "O": 100,
-            "P": 120,
-            "Q": 120,
-            "R": 130,
-            "S": 110,
-            "T": 90,
-            "U": 100,
-            "V": 100,
-            "W": 100,
-            "X": 130,
-            "Y": 120,
-            "Z": 120,
-            "a": 120,
-            "b": 120,
-            "c": 100,
-            "d": 100,
-            "e": 120,
-            "f": 120,
-            "g": 120,
-            "h": 120,
-            "i": 35,
-            "j": 80,
-            "k": 100,
-            "l": 80,
-            "m": 100,
-            "n": 100,
-            "o": 100,
-            "p": 120,
-            "q": 120,
-            "r": 130,
-            "s": 110,
-            "t": 90,
-            "u": 100,
-            "v": 100,
-            "w": 100,
-            "x": 130,
-            "y": 120,
-            "z": 120,
-        }
+    # else:
+    #     target_cp = {
+    #         "A": 120,
+    #         "B": 120,
+    #         "C": 100,
+    #         "D": 100,
+    #         "E": 120,
+    #         "F": 120,
+    #         "G": 120,
+    #         "H": 120,
+    #         "I": 35,
+    #         "J": 80,
+    #         "K": 100,
+    #         "L": 80,
+    #         "M": 100,
+    #         "N": 100,
+    #         "O": 100,
+    #         "P": 120,
+    #         "Q": 120,
+    #         "R": 130,
+    #         "S": 110,
+    #         "T": 90,
+    #         "U": 100,
+    #         "V": 100,
+    #         "W": 100,
+    #         "X": 130,
+    #         "Y": 120,
+    #         "Z": 120,
+    #         "a": 120,
+    #         "b": 120,
+    #         "c": 100,
+    #         "d": 100,
+    #         "e": 120,
+    #         "f": 120,
+    #         "g": 120,
+    #         "h": 120,
+    #         "i": 35,
+    #         "j": 80,
+    #         "k": 100,
+    #         "l": 80,
+    #         "m": 100,
+    #         "n": 100,
+    #         "o": 100,
+    #         "p": 120,
+    #         "q": 120,
+    #         "r": 130,
+    #         "s": 110,
+    #         "t": 90,
+    #         "u": 100,
+    #         "v": 100,
+    #         "w": 100,
+    #         "x": 130,
+    #         "y": 120,
+    #         "z": 120,
+    #     }
 
-        target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
+    #     target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
 
-    for f in fonts:
-        print(f"======= {f} =======")
+    # for f in fonts:
+    #     print(f"======= {f} =======")
 
-        font_path = f"data/fonts/arabic/{f}.ttf"
-        output_path = f"data/init"
-        txt = "حصان"
-        subdivision_thresh = None
-        font_string_to_svgs(
-            output_path,
-            font_path,
-            txt,
-            target_control=target_cp,
-            subdivision_thresh=subdivision_thresh,
-        )
-        # normalize_letter_size(output_path, font_path, txt)
+    #     font_path = f"data/fonts/arabic/{f}.ttf"
+    #     output_path = f"data/init"
+    #     txt = "حصان"
+    #     subdivision_thresh = None
+    #     font_string_to_svgs(
+    #         output_path,
+    #         font_path,
+    #         txt,
+    #         target_control=target_cp,
+    #         subdivision_thresh=subdivision_thresh,
+    #     )
+    #     # normalize_letter_size(output_path, font_path, txt)
 
-        print("DONE")
+    #     print("DONE")

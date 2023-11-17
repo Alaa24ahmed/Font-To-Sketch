@@ -8,6 +8,7 @@ import torch
 from utils import edict_2_dict, check_and_create_dir, update
 import wandb
 import warnings
+import os
 
 warnings.filterwarnings("ignore")
 from glob import glob
@@ -140,7 +141,7 @@ def set_config():
     del cfgs
 
     # set experiment dir
-    signature = f"{cfg.experiment_name}_dot_loss_{cfg.dot_product_loss_weight if cfg.use_dot_product_loss else 0}_content_loss{cfg.content_loss_weight if cfg.use_content_loss else 0}_angels_loss{cfg.loss.conformal.angeles_w if cfg.loss.conformal.use_conformal_loss else 0 }_seed_{cfg.seed}"
+    signature = f"{cfg.experiment_name}_dot_loss_{cfg.dot_product_loss_weight if cfg.use_dot_product_loss else 0}_content_loss{cfg.content_loss_weight if cfg.use_content_loss else 0}_angels_loss{cfg.loss.conformal.angeles_w if cfg.loss.conformal.use_conformal_loss else 0 }_seed_{cfg.seed}_levelOfcc_{cfg.level_of_cc}_sigma_{cfg.loss.tone.pixel_dist_sigma}"
     cfg.experiment_dir = osp.join(cfg.log_dir, signature)
     configfile = osp.join(cfg.experiment_dir, "config.yaml")
     print("Config:", cfg)
@@ -162,7 +163,11 @@ def set_config():
         random.seed(cfg.seed)
         npr.seed(cfg.seed)
         torch.manual_seed(cfg.seed)
+        torch.cuda.manual_seed(cfg.seed)
         torch.backends.cudnn.benchmark = False
+        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+        torch.use_deterministic_algorithms(True, warn_only = True)
+        torch.backends.cudnn.deterministic = True
     else:
         assert False
 

@@ -208,7 +208,8 @@ if __name__ == "__main__":
             wandb.log({"sds_loss": sds_loss_res.item()}, step=step)
             wandb.log({"dist_loss": tone_loss_res}, step=step)
             wandb.log({"loss_angles": loss_angles}, step=step)
-            wandb.log({"loss_content": loss_content}, step=step)
+            if cfg.use_content_loss:
+                wandb.log({"loss_content": loss_content}, step=step)
 
         t_range.set_postfix({"loss": loss.item()})
         loss.backward()

@@ -50,7 +50,7 @@ def preprocess(font, word, letters, experiment_name, script, level_of_cc=1):
     if level_of_cc == 0:
         target_cp = None
     else:
-        if script == "latin":
+        if script == "english":
             target_cp = {
                 "A": 120,
                 "B": 120,

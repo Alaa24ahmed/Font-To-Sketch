@@ -11,8 +11,8 @@ from losses import SDSLoss, ToneLoss, ConformalLoss
 from config import set_config
 from ttf import combine_word_mod
 from utils import (
-    check_and_create_dir,
     get_data_augs,
+    check_and_create_dir,
     save_image,
     preprocess,
     learning_rate_decay,
@@ -97,7 +97,10 @@ if __name__ == "__main__":
         im_init = data_augs.forward(im_init)
         sds_loss.set_image_init(im_init)
 
-    content_loss = ContentLoss(cfg, im_init)
+    if cfg.use_content_loss:
+        content_loss = ContentLoss(
+            cfg, process_image_to_pytorch(cfg.batch_size, img_init)
+        )
 
     im_init = im_init.squeeze(0).permute(1, 2, 0)
 
@@ -177,6 +180,7 @@ if __name__ == "__main__":
             save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
         x = process_image_to_pytorch(cfg.batch_size, img)
+        x_aug = x
         x_aug = data_augs.forward(x)
 
         # compute diffusion loss per pixel
@@ -185,6 +189,7 @@ if __name__ == "__main__":
 
         if cfg.loss.tone.use_tone_loss:
             tone_loss_res = tone_loss(x, step)
+            print(f"tone loss: {tone_loss_res}")
             loss = loss + tone_loss_res
 
         if cfg.loss.conformal.use_conformal_loss:
@@ -194,8 +199,8 @@ if __name__ == "__main__":
             loss = loss + loss_angles
 
         if cfg.use_content_loss:
-            loss_content = content_loss(x_aug)
-            loss_content = cfg.loss.content_weight * loss_content
+            loss_content = content_loss(x)
+            loss_content = cfg.content_loss_weight * loss_content
             print(f"loss_content: {loss_content}")
             loss = loss + loss_content
 
@@ -210,6 +215,9 @@ if __name__ == "__main__":
             wandb.log({"loss_content": loss_content}, step=step)
 
         t_range.set_postfix({"loss": loss.item()})
+        print(f"loss: {loss}")
+        print(f"loss_item: {loss.item()}")
+
         loss.backward()
         optim.step()
         scheduler.step()
@@ -218,7 +226,9 @@ if __name__ == "__main__":
     check_and_create_dir(filename)
     save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
-    combine_word_mod(cfg.target , cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir)
+    combine_word_mod(
+        cfg.target, cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir
+    )
     if cfg.save.image:
         filename = os.path.join(cfg.experiment_dir, "output-png", "output.png")
         check_and_create_dir(filename)

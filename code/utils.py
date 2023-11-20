@@ -51,6 +51,7 @@ def preprocess(font, word, letters, experiment_name, script, level_of_cc=1):
         target_cp = None
     else:
         if script == "latin":
+            
             target_cp = {
                 "A": 120,
                 "B": 120,
@@ -139,7 +140,7 @@ def preprocess(font, word, letters, experiment_name, script, level_of_cc=1):
                 "ة": 60,
             }
 
-        target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
+        target_cp = {k: v * level_of_cc for k, v in target_cp.items() } if target_cp else None
 
     print(f"======= {font} =======")
     font_path = f"code/data/fonts/{script}/{font}.ttf"

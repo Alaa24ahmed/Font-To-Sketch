@@ -16,6 +16,8 @@ from diffusers import StableDiffusionPipeline
 import torch.nn.functional as F
 import torchvision.models as models
 import torchvision
+import wandb
+import torchvision.transforms as transforms
 
 
 class SDSLoss(nn.Module):
@@ -34,6 +36,7 @@ class SDSLoss(nn.Module):
 
         self.text_embeddings = None
         self.embed_text()
+        self.step = 0
 
     def embed_text(self):
         # tokenizer and embed text
@@ -57,7 +60,7 @@ class SDSLoss(nn.Module):
             uncond_embeddings = self.pipe.text_encoder(
                 uncond_input.input_ids.to(self.device)
             )[0]
-        
+
         self.text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
         self.text_embeddings = self.text_embeddings.repeat_interleave(
             self.cfg.batch_size, 0
@@ -131,20 +134,33 @@ class SDSLoss(nn.Module):
             grad_z = (
                 self.alphas[timestep] ** 0.5 * self.sigmas[timestep] * (eps_t - eps)
             )
+
             assert torch.isfinite(grad_z).all()
-            grad_z = torch.nan_to_num(grad_z.detach().float(), 0.0, 0.0, 0.0)
+            # grad_z = torch.nan_to_num(grad_z.detach().float(), 0.0, 0.0, 0.0)
+            grad_z = torch.nan_to_num(grad_z.float(), 0.0, 0.0, 0.0)
 
         sds_loss = grad_z.clone() * current_latent_img.clone()
-        del grad_z
 
         sds_loss = sds_loss.sum(1).mean()
+
         print(f"sds_loss: {sds_loss}")
 
-        if self.cfg.use_dot_product_loss:
-            init_im_loss = self.latent_img_init.clone() * current_latent_img.clone()
-            init_im_loss = init_im_loss.sum(1).mean() * self.cfg.dot_product_loss_weight
-            sds_loss = sds_loss - init_im_loss
+        # targets = (current_latent_img - grad_z.clone()).detach()
 
+        # loss = (
+        #     0.5
+        #     * F.mse_loss(current_latent_img.float(), targets, reduction="sum")
+        #     / current_latent_img.shape[0]
+        # )
+
+        # if self.cfg.use_dot_product_loss:
+        #     init_im_loss = self.latent_img_init.clone() * current_latent_img.clone()
+        #     init_im_loss = init_im_loss.sum(1).mean() * self.cfg.dot_product_loss_weight
+        #     sds_loss = sds_loss - init_im_loss
+        del grad_z
+
+        self.step += 1
+        # return loss
         return sds_loss
 
 
@@ -166,10 +182,10 @@ class ToneLoss(nn.Module):
     def set_image_init(self, im_init):
         self.im_init = im_init.permute(2, 0, 1).unsqueeze(0)
         self.init_blurred = self.blurrer(self.im_init)
+        # self.init_blurred = self.im_init
 
     def get_scheduler(self, step=None):
         if step is not None:
-            # return 100
             return self.dist_loss_weight * np.exp(-(1 / 5) * ((step - 300) / (20)) ** 2)
         else:
             return self.dist_loss_weight
@@ -191,8 +207,6 @@ class ConformalLoss:
         target_letters: str,
         shape_groups,
     ):
-
-
         self.parameters = parameters
         self.target_letters = (
             target_letters
@@ -313,4 +327,6 @@ class ContentLoss(nn.Module):
         current_image_features = self.get_content_features(
             self.normalize(current_image)
         )
-        return self.cfg.content_loss_weight * F.mse_loss(current_image_features, self.base_image_features)
+        return self.cfg.content_loss_weight * F.mse_loss(
+            current_image_features, self.base_image_features
+        )

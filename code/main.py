@@ -23,7 +23,7 @@ import wandb
 import warnings
 import torch.nn as nn
 import torchvision.models as models
-from losses import ContentLoss
+from losses import NSTLoss
 
 warnings.filterwarnings("ignore")
 
@@ -98,8 +98,8 @@ if __name__ == "__main__":
         sds_loss.set_image_init(im_init)
 
     if cfg.use_content_loss:
-        content_loss = ContentLoss(
-            cfg, process_image_to_pytorch(cfg.batch_size, img_init)
+        nst_loss = NSTLoss(
+            cfg, process_image_to_pytorch(cfg.batch_size, img_init), device
         )
 
     im_init = im_init.squeeze(0).permute(1, 2, 0)
@@ -198,11 +198,13 @@ if __name__ == "__main__":
             print(f"loss_angles: {loss_angles}")
             loss = loss + loss_angles
 
-        if cfg.use_content_loss:
-            loss_content = content_loss(x)
+        if cfg.use_nst_loss:
+            loss_content, loss_style = nst_loss(x)
             loss_content = cfg.content_loss_weight * loss_content
             print(f"loss_content: {loss_content}")
-            loss = loss + loss_content
+            loss_style = cfg.style_loss_weight * loss_style
+            loss_nst = loss_content + loss_style
+            loss = loss + loss_nst
 
         if cfg.use_wandb:
             wandb.log({"learning_rate": optim.param_groups[0]["lr"]}, step=step)
@@ -213,7 +215,8 @@ if __name__ == "__main__":
             wandb.log({"dist_loss": tone_loss_res}, step=step)
             wandb.log({"loss_angles": loss_angles}, step=step)
             wandb.log({"loss_content": loss_content}, step=step)
-
+            wandb.log({"loss_style": loss_style}, step=step)
+            wandb.log({"loss_nst": loss_nst}, step=step)
         t_range.set_postfix({"loss": loss.item()})
         print(f"loss: {loss}")
         print(f"loss_item: {loss.item()}")

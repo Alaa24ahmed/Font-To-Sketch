@@ -97,7 +97,7 @@ if __name__ == "__main__":
         im_init = data_augs.forward(im_init)
         sds_loss.set_image_init(im_init)
 
-    if cfg.use_content_loss:
+    if cfg.use_nst_loss:
         nst_loss = NSTLoss(
             cfg, process_image_to_pytorch(cfg.batch_size, img_init), device
         )
@@ -199,11 +199,9 @@ if __name__ == "__main__":
             loss = loss + loss_angles
 
         if cfg.use_nst_loss:
-            loss_content, loss_style = nst_loss(x)
-            loss_content = cfg.content_loss_weight * loss_content
-            print(f"loss_content: {loss_content}")
-            loss_style = cfg.style_loss_weight * loss_style
-            loss_nst = loss_content + loss_style
+            loss_content = nst_loss(x)[0]
+            loss_style = nst_loss(x)[1]
+            loss_nst = 1000000 * (loss_content)
             loss = loss + loss_nst
 
         if cfg.use_wandb:
@@ -221,7 +219,7 @@ if __name__ == "__main__":
         print(f"loss: {loss}")
         print(f"loss_item: {loss.item()}")
 
-        loss.backward()
+        loss.backward(retain_graph=True)
         optim.step()
         scheduler.step()
 

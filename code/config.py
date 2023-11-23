@@ -76,6 +76,7 @@ def parse_args():
     parser.add_argument("--use_wandb", type=int, default=0)
     parser.add_argument("--wandb_user", type=str, default="none")
 
+    parser.add_argument("--use_nst_loss", type=int, default=0)
     cfg = edict()
     args = parser.parse_args()
     with open("TOKEN", "r") as f:
@@ -115,6 +116,7 @@ def parse_args():
     cfg.wandb_user = args.wandb_user
     cfg.experiment_name = f"{cfg.font}_{cfg.word}_{optimized_region_name if cfg.operation_mode == 1 else 'full_word'}"
     cfg.target = f"code/data/init/{cfg.experiment_name}_scaled"
+    cfg.use_nst_loss = args.use_nst_loss
     if " " in cfg.target:
         cfg.target = cfg.target.replace(" ", "_")
 

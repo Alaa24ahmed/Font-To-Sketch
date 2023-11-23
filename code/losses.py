@@ -298,7 +298,7 @@ class NSTLoss(nn.Module):
     """
 
     def __init__(self, cfg, base_image, device):
-        super(NSTLoss, self).__init__()
+        super(NSTLoss2, self).__init__()
         self.cfg = cfg
         self.device = device
         self.vgg_model = models.vgg19(
@@ -309,32 +309,28 @@ class NSTLoss(nn.Module):
         self.content_layer = 23  # layer 23 in vgg19 is conv4_2  used for content loss
         self.style_layers = [0, 5, 10, 19, 28]
         self.initalize_base_image_features(base_image)
-        self.content_loss_weight = (
-            cfg.loss.content_loss_weight if cfg.loss.content_loss_weight else 1
-        )
-        self.style_loss_weight = (
-            cfg.loss.style_loss_weight if cfg.loss.style_loss_weight else 1
-        )
 
     def initalize_base_image_features(self, base_image):
-        self.base_image_features = self.get_content_features(self.normalize(base_image))
-        self.base_content_features = self.base_image_features[0][0].detach()
+        self.base_image_features = self.get_features(self.normalize(base_image))
+        self.base_content_features = self.base_image_features[0].detach()
         self.base_style_features = self.base_image_features[1]
 
     def get_features(self, current_image):
-        content_features = []
+        content_features = None
         style_features = []
         x = current_image
 
         for index, layer in enumerate(self.vgg_model.children()):
             x = layer(x)
             if index in self.style_layers:
-                style_features.append(x)
+                style_features.append(x.clone().detach())
             elif index == self.content_layer:
-                content_features.append(x)
+                content_features = x.clone().detach()
 
             if index == self.style_layers[-1]:
                 break
+        # print(f"content_features: {content_features}")
+        # print(f"style_features: {style_features}")
         return content_features, style_features
 
     def normalize(self, image):
@@ -344,32 +340,32 @@ class NSTLoss(nn.Module):
         std = torch.tensor(cnn_normalization_std).view(-1, 1, 1).to(self.device)
         # image = image.to("cpu")
         return (image - mean) / std
-    def content_loss(self, content_features):
-        return F.mse_loss(
-            content_features, self.base_content_features
-        )
 
-    def gram_matrix(input):
+    def content_loss(self, content_features):
+        return F.mse_loss(content_features, self.base_content_features)
+
+    def gram_matrix(self, input):
         a, b, c, d = input.size()  # a=batch size(=1)
         features = input.view(a * b, c * d)  # resize F_XL into \hat F_XL
         G = torch.mm(features, features.t())  # compute the gram product
-        return G.div(a * b * c * d) #normalize 
-    
-    def style_loss(self ,style_features): 
+        return G.div(a * b * c * d)  # normalize
+
+    def style_loss(self, style_features):
         style_loss = 0
         for current_style, base_style in zip(style_features, self.base_style_features):
             current_style = self.gram_matrix(current_style)
             base_style = self.gram_matrix(base_style)
             style_loss += F.mse_loss(current_style, base_style)
-        print(f"style_loss: {style_loss}")
         return style_loss
+
     def forward(self, current_image):
-        current_image_features = self.get_content_features(
-            self.normalize(current_image)
-        )
-        content_features = current_image_features[0][0]
+        current_image_features = self.get_features(self.normalize(current_image))
+        content_features = current_image_features[0]
+        print("content_featueres_shape in combined ", content_features.shape)
         style_features = current_image_features[1]
         content_loss = self.content_loss(content_features)
         style_loss = self.style_loss(style_features)
-        
-        return content_loss , style_loss 
+
+        return content_loss, style_loss
+
+

@@ -50,8 +50,7 @@ def preprocess(font, word, letters, experiment_name, script, level_of_cc=1):
     if level_of_cc == 0:
         target_cp = None
     else:
-        if script == "latin":
-            
+        if script == "english":
             target_cp = {
                 "A": 120,
                 "B": 120,
@@ -162,10 +161,10 @@ def preprocess(font, word, letters, experiment_name, script, level_of_cc=1):
         target_control=target_cp,
         subdivision_thresh=subdivision_thresh,
     )
-    normalize_svg_size(svg_path)
+    # normalize_svg_size(svg_path)
 
     if "full_word" not in svg_path:
-        extract_svg_paths(svg_path, letters)
+        extract_svg_paths(svg_path, letters, script)
     print("Done preprocess")
 
 
@@ -222,14 +221,21 @@ def save_image(img, filename, gamma=1):
     pydiffvg.imwrite(imshow, filename, gamma=gamma)
 
 
+# def get_letter_ids(letter, word, shape_groups):
+#     for group, l in zip(shape_groups, word):
+#         if l == letter:
+#             return group.shape_ids
+        
 def get_letter_ids(letter, word, shape_groups):
-    for group, l in zip(shape_groups, word):
-        if l == letter:
-            return group.shape_ids
+    return [int(x) for x in shape_groups[letter].shape_ids]
 
 
-def combine_word(word, letter, font, experiment_dir):
-    word_svg_scaled = f"./code/data/init/{font}_{word}_scaled.svg"
+def combine_word(svg_path, word, letter, font, experiment_dir, script):
+    svg_path = svg_path[:-7]
+    word_svg= f"{svg_path}.svg"
+    normalize_svg_size(svg_path)
+    word_svg_scaled = f"{svg_path}_scaled.svg"
+    # word_svg_scaled = f"./code/data/init/{font}_{word}_scaled.svg"
     (
         canvas_width_word,
         canvas_height_word,
@@ -237,9 +243,13 @@ def combine_word(word, letter, font, experiment_dir):
         shape_groups_word,
     ) = pydiffvg.svg_to_scene(word_svg_scaled)
 
-    letter_ids = [letter]
-    # for l in letter:
-    #     letter_ids += get_letter_ids(l, word, shape_groups_word)
+    letter_ids = []
+    for l in letter:
+        if script == "english":
+            letter_ids += get_letter_ids(l, word, shape_groups_word)
+        elif script == "arabic":
+            letter_ids += get_letter_ids(len(word)-l-1, word, shape_groups_word)
+    print(letter_ids)
 
     w_min, w_max = min(
         [torch.min(shapes_word[ids].points[:, 0]) for ids in letter_ids]

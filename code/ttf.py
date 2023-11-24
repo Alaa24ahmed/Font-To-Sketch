@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 import aspose.words as aw
 import aspose.pydrawing as pydraw
 import wandb
-import config as cfg
+# import config as cfg
 import xml.etree.ElementTree as ET
 from svg.path import parse_path
 import matplotlib.pyplot as plt
@@ -23,8 +23,22 @@ device = torch.device(
 reload(bezier)
 
 
-def fix_single_svg(svg_path, output_path, all_word=False):
-    target_h_letter = 360
+def fix_single_svg(svg_path, output_path, all_word=False, letters=None):
+    if(all_word):
+        target_h_letter = 460
+    if(letters):
+        if(len(letters) == 1):
+            target_h_letter = 1000
+        elif(len(letters) == 2):
+            target_h_letter = 800
+        elif(len(letters) == 3):
+            target_h_letter = 500
+        elif(len(letters) == 4):
+            target_h_letter = 400
+        else:
+            target_h_letter = 360
+    else:
+        target_h_letter = 1000
     target_canvas_width, target_canvas_height = 600, 600
     canvas_width, canvas_height, shapes, shape_groups = pydiffvg.svg_to_scene(svg_path)
     letter_h = canvas_height
@@ -208,26 +222,41 @@ def extract_attributes(input_svg_file):
     return xmlns, width, height
 
 
-def extract_svg_paths(dest_path, letters):
-    word_svg_path = f"{dest_path}_scaled.svg"
+def extract_svg_paths(dest_path, letters, script):
+    word_svg_path = f"{dest_path}.svg"
+    target = f"{dest_path}_scaled.svg"
     tree = ET.parse(word_svg_path)
     root = tree.getroot()
-    xmlns, width, height = extract_attributes(word_svg_path)
+
+
+    viewBox = root.attrib.get("viewBox", "")
+    transform = root.attrib.get("transform", "")
+    # xmlns, width, height = extract_attributes(word_svg_path)
+
     paths = root.findall(".//{http://www.w3.org/2000/svg}path")
-    new_root = ET.Element("svg", xmlns=xmlns, width=width, height=height)
+    if not paths:
+        paths = root.findall(".//path")
+
+    print(paths)
+    new_root = ET.Element("svg", viewBox=viewBox, transform=transform)
     for letter_idx in letters:
-        letter_path = paths[len(paths) - int(letter_idx) - 1]
+        if script == "english":
+            letter_path = paths[int(letter_idx)]
+        elif script == "arabic":
+            letter_path = paths[len(paths) - int(letter_idx) - 1]
         new_root.append(letter_path)
     remove_namespace(new_root)
     new_tree = ET.ElementTree(new_root)
     letter_name = "".join([str(elem) for elem in letters])
-    new_tree.write(word_svg_path)
+    new_tree.write(target)
+    print(target)
+    fix_single_svg(target, target, all_word=False, letters=letters)
+
 
 
 def combine_word_mod(svg_path, word, letter, font, experiment_dir):
-    word_svg_scaled = f"{svg_path}.svg"
     svg_path = svg_path[:-7]
-    word_svg = f"{svg_path}.svg"
+    word_svg= f"{svg_path}.svg"
     normalize_svg_size(svg_path)
     word_svg_scaled = f"{svg_path}_scaled.svg"
     print(word_svg_scaled)
@@ -266,14 +295,6 @@ def combine_word_mod(svg_path, word, letter, font, experiment_dir):
     pageSetup.bottom_margin = 0
     pageSetup.right_margin = 0
     doc.save(f"{experiment_dir}/{font}_{word}_{letter}.png")
-    if cfg.use_wandb:
-        wandb.log(
-            {
-                "img": wandb.Image(
-                    plt.imread(f"{experiment_dir}/{font}_{word}_{letter}.png")
-                )
-            } , step = 501
-        )
     # if cfg.use_wandb:
     #     wandb.log(
     #         {
@@ -285,87 +306,7 @@ def combine_word_mod(svg_path, word, letter, font, experiment_dir):
 
 
 if __name__ == "__main__":
-    fonts = ["ArefRuqaa-Regular"]
-    level_of_cc = 1
-
-    if level_of_cc == 0:
-        target_cp = None
-
-    else:
-        target_cp = {
-            "A": 120,
-            "B": 120,
-            "C": 100,
-            "D": 100,
-            "E": 120,
-            "F": 120,
-            "G": 120,
-            "H": 120,
-            "I": 35,
-            "J": 80,
-            "K": 100,
-            "L": 80,
-            "M": 100,
-            "N": 100,
-            "O": 100,
-            "P": 120,
-            "Q": 120,
-            "R": 130,
-            "S": 110,
-            "T": 90,
-            "U": 100,
-            "V": 100,
-            "W": 100,
-            "X": 130,
-            "Y": 120,
-            "Z": 120,
-            "a": 120,
-            "b": 120,
-            "c": 100,
-            "d": 100,
-            "e": 120,
-            "f": 120,
-            "g": 120,
-            "h": 120,
-            "i": 35,
-            "j": 80,
-            "k": 100,
-            "l": 80,
-            "m": 100,
-            "n": 100,
-            "o": 100,
-            "p": 120,
-            "q": 120,
-            "r": 130,
-            "s": 110,
-            "t": 90,
-            "u": 100,
-            "v": 100,
-            "w": 100,
-            "x": 130,
-            "y": 120,
-            "z": 120,
-        }
-
-        target_cp = {k: v * level_of_cc for k, v in target_cp.items()}
-
-    for f in fonts:
-        print(f"======= {f} =======")
-
-        font_path = f"data/fonts/arabic/{f}.ttf"
-        output_path = f"data/init"
-        txt = "حصان"
-        subdivision_thresh = None
-        font_string_to_svgs(
-            output_path,
-            font_path,
-            txt,
-            target_control=target_cp,
-            subdivision_thresh=subdivision_thresh,
-        )
-        # normalize_letter_size(output_path, font_path, txt)
-
-        print("DONE")
+    pass
     # combine_word_mod("/home/alaa/projects/me/latest/Font-To-Sketch/code/data/init/06_موسيقى_01_scaled", "موسيقى" , [0,1], "06", "/home/alaa/projects/me/latest/Font-To-Sketch/output/arabic/06_موسيقى_01_dot_loss_0.2_content_loss0_angels_loss0.5_seed_42" )
     # fonts = ["ArefRuqaa-Regular"]
     # level_of_cc = 1

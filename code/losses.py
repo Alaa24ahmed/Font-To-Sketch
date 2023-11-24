@@ -142,8 +142,7 @@ class SDSLoss(nn.Module):
         sds_loss = grad_z.clone() * current_latent_img.clone()
 
         sds_loss = sds_loss.sum(1).mean()
-
-        print(f"sds_loss: {sds_loss}")
+        # print(f"sds_loss: {sds_loss}")
 
         # targets = (current_latent_img - grad_z.clone()).detach()
 

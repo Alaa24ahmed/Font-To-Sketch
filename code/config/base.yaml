@@ -43,5 +43,3 @@ default:
     conformal:
       use_conformal_loss: true
       angeles_w: 0.5
-
-

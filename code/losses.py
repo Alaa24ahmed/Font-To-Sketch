@@ -298,7 +298,7 @@ class NSTLoss(nn.Module):
     """
 
     def __init__(self, cfg, base_image, device):
-        super(NSTLoss2, self).__init__()
+        super(NSTLoss, self).__init__()
         self.cfg = cfg
         self.device = device
         self.vgg_model = models.vgg19(
@@ -313,7 +313,10 @@ class NSTLoss(nn.Module):
     def initalize_base_image_features(self, base_image):
         self.base_image_features = self.get_features(self.normalize(base_image))
         self.base_content_features = self.base_image_features[0].detach()
-        self.base_style_features = self.base_image_features[1]
+        self.base_style_features = [
+            self.gram_matrix(style_feature).detach()
+            for style_feature in self.base_image_features[1]
+        ]
 
     def get_features(self, current_image):
         content_features = None
@@ -323,9 +326,9 @@ class NSTLoss(nn.Module):
         for index, layer in enumerate(self.vgg_model.children()):
             x = layer(x)
             if index in self.style_layers:
-                style_features.append(x.clone().detach())
+                style_features.append(x.clone())
             elif index == self.content_layer:
-                content_features = x.clone().detach()
+                content_features = x.clone()
 
             if index == self.style_layers[-1]:
                 break
@@ -354,7 +357,6 @@ class NSTLoss(nn.Module):
         style_loss = 0
         for current_style, base_style in zip(style_features, self.base_style_features):
             current_style = self.gram_matrix(current_style)
-            base_style = self.gram_matrix(base_style)
             style_loss += F.mse_loss(current_style, base_style)
         return style_loss
 
@@ -367,5 +369,3 @@ class NSTLoss(nn.Module):
         style_loss = self.style_loss(style_features)
 
         return content_loss, style_loss
-
-

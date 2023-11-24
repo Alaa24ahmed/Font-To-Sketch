@@ -199,11 +199,12 @@ if __name__ == "__main__":
             loss = loss + loss_angles
 
         if cfg.use_nst_loss:
-            loss_content = nst_loss(x)[0]
-            loss_style = nst_loss(x)[1]
-            loss_nst = 1000000 * (loss_content)
-            loss = loss + loss_nst
-
+            loss_content , loss_style = nst_loss(x)
+            loss = loss + cfg.content_loss_weight * loss_content + cfg.style_loss_weight * loss_style
+            print(f"loss_content: {loss_content}")
+            print(f"loss_style: {loss_style}")
+            
+            
         if cfg.use_wandb:
             wandb.log({"learning_rate": optim.param_groups[0]["lr"]}, step=step)
             plt.imshow(img.detach().cpu())
@@ -219,7 +220,7 @@ if __name__ == "__main__":
         print(f"loss: {loss}")
         print(f"loss_item: {loss.item()}")
 
-        loss.backward(retain_graph=True)
+        loss.backward()
         optim.step()
         scheduler.step()
 

@@ -62,14 +62,12 @@ def parse_args():
         default=0.2,
         help="dot product loss weight",
     )
+    
     parser.add_argument(
-        "--use_content_loss",
-        type=int,
-        default=0,
-        help="use content loss , doubles inference time",
+        "--content_loss_weight", type=float, default=0.001, help="content loss weight"
     )
     parser.add_argument(
-        "--content_loss_weight", type=float, default=1, help="content loss weight"
+        "--style_loss_weight", type=float, default=0.001, help="style loss weight"
     )
 
     parser.add_argument("--batch_size", type=int, default=1)
@@ -92,8 +90,8 @@ def parse_args():
     cfg.script = args.script
     cfg.use_dot_product_loss = args.use_dot_product_loss
     cfg.dot_product_loss_weight = args.dot_product_loss_weight
-    cfg.use_content_loss = args.use_content_loss
     cfg.content_loss_weight = args.content_loss_weight
+    cfg.style_loss_weight = args.style_loss_weight
     cfg.operation_mode = args.operation_mode
 
     script_path = f"code/data/fonts/{cfg.script}"
@@ -142,7 +140,7 @@ def set_config():
     del cfgs
 
     # set experiment dir
-    signature = f"{cfg.experiment_name}_dot_loss_{cfg.dot_product_loss_weight if cfg.use_dot_product_loss else 0}_content_loss{cfg.content_loss_weight if cfg.use_content_loss else 0}_angels_loss{cfg.loss.conformal.angeles_w if cfg.loss.conformal.use_conformal_loss else 0 }_seed_{cfg.seed}"
+    signature = f"{cfg.experiment_name}_dot_loss_{cfg.dot_product_loss_weight if cfg.use_dot_product_loss else 0}_content_loss{cfg.content_loss_weight if cfg.use_nst_loss else 0}_angels_loss{cfg.loss.conformal.angeles_w if cfg.loss.conformal.use_conformal_loss else 0 }_seed_{cfg.seed}"
     cfg.experiment_dir = osp.join(cfg.log_dir, signature)
     configfile = osp.join(cfg.experiment_dir, "config.yaml")
     print("Config:", cfg)

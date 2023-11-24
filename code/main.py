@@ -191,13 +191,13 @@ if __name__ == "__main__":
         if cfg.loss.conformal.use_conformal_loss:
             loss_angles = conformal_loss()
             loss_angles = cfg.loss.conformal.angeles_w * loss_angles
-            print(f"loss_angles: {loss_angles}")
+            # print(f"loss_angles: {loss_angles}")
             loss = loss + loss_angles
 
         if cfg.use_content_loss:
             loss_content = content_loss(x_aug)
             loss_content = cfg.loss.content_weight * loss_content
-            print(f"loss_content: {loss_content}")
+            # print(f"loss_content: {loss_content}")
             loss = loss + loss_content
 
         if cfg.use_wandb:
@@ -220,8 +220,11 @@ if __name__ == "__main__":
     check_and_create_dir(filename)
     save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
-    combine_word_mod(
-        cfg.target, cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir
+    # combine_word_mod(
+    #     cfg.target, cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir
+    # )
+    combine_word(
+        cfg.target, cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir, cfg.script
     )
     if cfg.save.image:
         filename = os.path.join(cfg.experiment_dir, "output-png", "output.png")

@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 import aspose.words as aw
 import aspose.pydrawing as pydraw
 import wandb
-import config as cfg
+# import config as cfg
 import xml.etree.ElementTree as ET
 from svg.path import parse_path
 import matplotlib.pyplot as plt
@@ -24,8 +24,22 @@ device = torch.device(
 reload(bezier)
 
 
-def fix_single_svg(svg_path, output_path, all_word=False):
-    target_h_letter = 360
+def fix_single_svg(svg_path, output_path, all_word=False, letters=None):
+    if(all_word):
+        target_h_letter = 460
+    if(letters):
+        if(len(letters) == 1):
+            target_h_letter = 1000
+        elif(len(letters) == 2):
+            target_h_letter = 800
+        elif(len(letters) == 3):
+            target_h_letter = 500
+        elif(len(letters) == 4):
+            target_h_letter = 400
+        else:
+            target_h_letter = 360
+    else:
+        target_h_letter = 1000
     target_canvas_width, target_canvas_height = 600, 600
 
     canvas_width, canvas_height, shapes, shape_groups = pydiffvg.svg_to_scene(svg_path)
@@ -225,21 +239,36 @@ def extract_attributes(input_svg_file):
     return xmlns, width, height
 
 
-def extract_svg_paths(dest_path, letters):
-    word_svg_path = f"{dest_path}_scaled.svg"
+def extract_svg_paths(dest_path, letters, script):
+    word_svg_path = f"{dest_path}.svg"
+    target = f"{dest_path}_scaled.svg"
     tree = ET.parse(word_svg_path)
     root = tree.getroot()
-    xmlns, width, height = extract_attributes(word_svg_path)
+
+
+    viewBox = root.attrib.get("viewBox", "")
+    transform = root.attrib.get("transform", "")
+    # xmlns, width, height = extract_attributes(word_svg_path)
 
     paths = root.findall(".//{http://www.w3.org/2000/svg}path")
-    new_root = ET.Element("svg", xmlns=xmlns, width=width, height=height)
+    if not paths:
+        paths = root.findall(".//path")
+
+    print(paths)
+    new_root = ET.Element("svg", viewBox=viewBox, transform=transform)
     for letter_idx in letters:
-        letter_path = paths[len(paths) - int(letter_idx) - 1]
+        if script == "english":
+            letter_path = paths[int(letter_idx)]
+        elif script == "arabic":
+            letter_path = paths[len(paths) - int(letter_idx) - 1]
         new_root.append(letter_path)
     remove_namespace(new_root)
     new_tree = ET.ElementTree(new_root)
     letter_name = "".join([str(elem) for elem in letters])
-    new_tree.write(word_svg_path)
+    new_tree.write(target)
+    print(target)
+    fix_single_svg(target, target, all_word=False, letters=letters)
+
 
 
 def combine_word_mod(svg_path, word, letter, font, experiment_dir):

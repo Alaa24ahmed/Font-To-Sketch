@@ -138,7 +138,7 @@ class SDSLoss(nn.Module):
         del grad_z
 
         sds_loss = sds_loss.sum(1).mean()
-        print(f"sds_loss: {sds_loss}")
+        # print(f"sds_loss: {sds_loss}")
 
         if self.cfg.use_dot_product_loss:
             init_im_loss = self.latent_img_init.clone() * current_latent_img.clone()

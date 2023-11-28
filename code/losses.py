@@ -307,9 +307,14 @@ class NSTLoss(nn.Module):
         print(f"model{self.vgg_model}")
         self.content_layer = 23  # layer 23 in vgg19 is conv4_2  used for content loss
         self.style_layers = [0, 5, 10, 19, 28]
+        self.blurrer = torchvision.transforms.GaussianBlur(
+            kernel_size=(21, 21),
+        )
         self.initalize_base_image_features(base_image)
 
     def initalize_base_image_features(self, base_image):
+        if self.cfg.use_blurrer_in_nst:
+            base_image = self.blurrer(base_image)
         self.base_image_features = self.get_features(self.normalize(base_image))
         self.base_content_features = self.base_image_features[0].detach()
         self.base_style_features = [
@@ -321,6 +326,8 @@ class NSTLoss(nn.Module):
         content_features = None
         style_features = []
         x = current_image
+        if self.cfg.use_blurrer_in_nst:
+            x = self.blurrer(x)
 
         for index, layer in enumerate(self.vgg_model.children()):
             x = layer(x)
@@ -368,3 +375,17 @@ class NSTLoss(nn.Module):
         style_loss = self.style_loss(style_features)
 
         return content_loss, style_loss
+
+
+class VariationLoss(nn.Module):
+    def __init__(self, cfg):
+        super(VariationLoss, self).__init__()
+        self.cfg = cfg
+
+    def total_variation(self, image):
+        return torch.sum(
+            torch.abs(image[:, :, :, :-1] - image[:, :, :, 1:])
+        ) + torch.sum(torch.abs(image[:, :, :-1, :] - image[:, :, 1:, :]))
+
+    def forward(self, image):
+        return self.total_variation(image)

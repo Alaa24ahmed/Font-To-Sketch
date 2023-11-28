@@ -23,7 +23,7 @@ import wandb
 import warnings
 import torch.nn as nn
 import torchvision.models as models
-from losses import NSTLoss
+from losses import NSTLoss, VariationLoss
 
 warnings.filterwarnings("ignore")
 
@@ -101,6 +101,9 @@ if __name__ == "__main__":
         nst_loss = NSTLoss(
             cfg, process_image_to_pytorch(cfg.batch_size, img_init), device
         )
+
+    if cfg.use_variational_loss:
+        variational_loss = VariationLoss(cfg)
 
     im_init = im_init.squeeze(0).permute(1, 2, 0)
 
@@ -199,12 +202,20 @@ if __name__ == "__main__":
             loss = loss + loss_angles
 
         if cfg.use_nst_loss:
-            loss_content , loss_style = nst_loss(x)
-            loss = loss + cfg.content_loss_weight * loss_content + cfg.style_loss_weight * loss_style
+            loss_content, loss_style = nst_loss(x)
+            loss = (
+                loss
+                + cfg.content_loss_weight * loss_content
+                + cfg.style_loss_weight * loss_style
+            )
             print(f"loss_content: {loss_content}")
             print(f"loss_style: {loss_style}")
-            
-            
+
+        if cfg.use_variational_loss:
+            loss_variational = variational_loss(x)
+            loss = loss + cfg.variational_loss_weight * loss_variational
+            print(f"loss_variational: {loss_variational}")
+
         if cfg.use_wandb:
             wandb.log({"learning_rate": optim.param_groups[0]["lr"]}, step=step)
             plt.imshow(img.detach().cpu())
@@ -227,9 +238,13 @@ if __name__ == "__main__":
     check_and_create_dir(filename)
     save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
-
     combine_word(
-        cfg.target, cfg.word, cfg.optimized_region, cfg.font, cfg.experiment_dir, cfg.script
+        cfg.target,
+        cfg.word,
+        cfg.optimized_region,
+        cfg.font,
+        cfg.experiment_dir,
+        cfg.script,
     )
     if cfg.save.image:
         filename = os.path.join(cfg.experiment_dir, "output-png", "output.png")

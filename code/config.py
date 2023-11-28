@@ -63,7 +63,7 @@ def parse_args():
         default=0.2,
         help="dot product loss weight",
     )
-    
+
     parser.add_argument(
         "--content_loss_weight", type=float, default=0.001, help="content loss weight"
     )
@@ -76,6 +76,10 @@ def parse_args():
     parser.add_argument("--wandb_user", type=str, default="none")
 
     parser.add_argument("--use_nst_loss", type=int, default=0)
+    parser.add_argument("--use_variational_loss", type=int, default=0)
+    parser.add_argument("--variational_loss_weight", type=int, default=1)
+    parser.add_argument("--use_blurrer_in_nst", type=int, default=0)
+
     cfg = edict()
     args = parser.parse_args()
     with open("TOKEN", "r") as f:
@@ -91,8 +95,12 @@ def parse_args():
     cfg.script = args.script
     cfg.use_dot_product_loss = args.use_dot_product_loss
     cfg.dot_product_loss_weight = args.dot_product_loss_weight
+    cfg.use_nst_loss = args.use_nst_loss
     cfg.content_loss_weight = args.content_loss_weight
     cfg.style_loss_weight = args.style_loss_weight
+    cfg.use_variational_loss = args.use_variational_loss
+    cfg.variational_loss_weight = args.variational_loss_weight
+    cfg.use_blurrer_in_nst = args.use_blurrer_in_nst
     cfg.operation_mode = args.operation_mode
 
     script_path = f"code/data/fonts/{cfg.script}"
@@ -115,7 +123,6 @@ def parse_args():
     cfg.wandb_user = args.wandb_user
     cfg.experiment_name = f"{cfg.font}_{cfg.word}_{optimized_region_name if cfg.operation_mode == 1 else 'full_word'}"
     cfg.target = f"code/data/init/{cfg.experiment_name}_scaled"
-    cfg.use_nst_loss = args.use_nst_loss
     if " " in cfg.target:
         cfg.target = cfg.target.replace(" ", "_")
 
@@ -141,7 +148,7 @@ def set_config():
     del cfgs
 
     # set experiment dir
-    signature = f"{cfg.experiment_name}_dot_loss_{cfg.dot_product_loss_weight if cfg.use_dot_product_loss else 0}_content_loss{cfg.content_loss_weight if cfg.use_nst_loss else 0}_angels_loss{cfg.loss.conformal.angeles_w if cfg.loss.conformal.use_conformal_loss else 0 }_seed_{cfg.seed}"
+    signature = f"{cfg.experiment_name}_dot_loss_{cfg.dot_product_loss_weight if cfg.use_dot_product_loss else 0}_content_loss{cfg.content_loss_weight if cfg.use_nst_loss else 0}_useblurNST_{cfg.use_blurrer_in_nst}_angels_loss{cfg.loss.conformal.angeles_w if cfg.loss.conformal.use_conformal_loss else 0 }_seed_{cfg.seed}"
     cfg.experiment_dir = osp.join(cfg.log_dir, signature)
     configfile = osp.join(cfg.experiment_dir, "config.yaml")
     print("Config:", cfg)
@@ -165,8 +172,8 @@ def set_config():
         torch.manual_seed(cfg.seed)
         torch.cuda.manual_seed(cfg.seed)
         torch.backends.cudnn.benchmark = False
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
-        torch.use_deterministic_algorithms(True, warn_only = True)
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+        torch.use_deterministic_algorithms(True, warn_only=True)
         torch.backends.cudnn.deterministic = True
     else:
         assert False

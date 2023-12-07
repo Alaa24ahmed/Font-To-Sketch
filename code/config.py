@@ -148,8 +148,8 @@ def set_config():
     del cfgs
 
     # set experiment dir
-    signature = f"{cfg.experiment_name}_dot_loss_{cfg.dot_product_loss_weight if cfg.use_dot_product_loss else 0}_content_loss{cfg.content_loss_weight if cfg.use_nst_loss else 0}_useblurNST_{cfg.use_blurrer_in_nst}_angels_loss{cfg.loss.conformal.angeles_w if cfg.loss.conformal.use_conformal_loss else 0 }_seed_{cfg.seed}"
-    cfg.experiment_dir = osp.join(cfg.log_dir, signature)
+    cfg.signature = f"{cfg.experiment_name}_dot_loss_{cfg.dot_product_loss_weight if cfg.use_dot_product_loss else 0}_content_loss{cfg.content_loss_weight if cfg.use_nst_loss else 0}_useblurNST_{cfg.use_blurrer_in_nst}_angels_loss{cfg.loss.conformal.angeles_w if cfg.loss.conformal.use_conformal_loss else 0 }_seed_{cfg.seed}"
+    cfg.experiment_dir = osp.join(cfg.log_dir, cfg.signature)
     configfile = osp.join(cfg.experiment_dir, "config.yaml")
     print("Config:", cfg)
 
@@ -162,7 +162,7 @@ def set_config():
         wandb.init(
             project="Font-To-Image",
             entity=cfg.wandb_user,
-            name=f"{cfg.semantic_concept}_{cfg.seed}_{cfg.experiment_name}",
+            name=f"{cfg.semantic_concept}_{cfg.seed}_{cfg.signature}",
             id=wandb.util.generate_id(),
         )
 

@@ -24,6 +24,7 @@ import warnings
 import torch.nn as nn
 import torchvision.models as models
 from losses import ContentLoss
+from choose_region import CLipDrawLoss
 
 warnings.filterwarnings("ignore")
 
@@ -66,6 +67,9 @@ if __name__ == "__main__":
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
     print("preprocessing")
+
+    clip_draw_loss = CLipDrawLoss(cfg, device)
+
     preprocess(
         cfg.font,
         cfg.word,
@@ -74,6 +78,9 @@ if __name__ == "__main__":
         cfg.script,
         cfg.level_of_cc,
     )
+
+    # clip_draw_loss.get_loss_per_region()
+    # exit()
     h, w = cfg.render_size, cfg.render_size
     data_augs = get_data_augs(cfg.cut_size)
     render = pydiffvg.RenderFunction.apply
@@ -215,6 +222,7 @@ if __name__ == "__main__":
         loss.backward()
         optim.step()
         scheduler.step()
+
 
     filename = os.path.join(cfg.experiment_dir, "output-svg", "output.svg")
     check_and_create_dir(filename)

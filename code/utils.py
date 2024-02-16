@@ -45,7 +45,8 @@ def update(d, u):
 
 
 def preprocess(font, word, letters, experiment_name, script, level_of_cc=1):
-    safe_arabic_fonts = {"06"}
+    safe_arabic_fonts = {"01", "02", "03", "05", "06", "08", "11", "12", "13", "14", "15", "16", "18", "19", "20"}
+    target_cp = None
 
     if level_of_cc == 0:
         target_cp = None
@@ -138,8 +139,8 @@ def preprocess(font, word, letters, experiment_name, script, level_of_cc=1):
                 "ي": 100,
                 "ة": 60,
             }
-
-        target_cp = {k: v * level_of_cc for k, v in target_cp.items() } if target_cp else None
+        if(target_cp):
+            target_cp = {k: v * level_of_cc for k, v in target_cp.items() } if target_cp else None
 
     print(f"======= {font} =======")
     font_path = f"code/data/fonts/{script}/{font}.ttf"
@@ -249,6 +250,8 @@ def combine_word(svg_path, word, letter, font, experiment_dir, script):
             letter_ids += get_letter_ids(l, word, shape_groups_word)
         elif script == "arabic":
             letter_ids += get_letter_ids(len(word)-l-1, word, shape_groups_word)
+        else:
+            letter_ids += get_letter_ids(l, word, shape_groups_word)
     print(letter_ids)
 
     w_min, w_max = min(

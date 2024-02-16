@@ -96,7 +96,7 @@ def parse_args():
     cfg.use_dot_product_loss = args.use_dot_product_loss
     cfg.dot_product_loss_weight = args.dot_product_loss_weight
     cfg.use_nst_loss = args.use_nst_loss
-    cfg.content_loss_weight = args.content_loss_weight
+    cfg.content_loss_weight = 0.001*len(cfg.word)
     cfg.style_loss_weight = args.style_loss_weight
     cfg.use_variational_loss = args.use_variational_loss
     cfg.variational_loss_weight = args.variational_loss_weight

@@ -26,7 +26,7 @@ class SDSLoss(nn.Module):
         self.cfg = cfg
         self.device = device
         self.pipe = StableDiffusionPipeline.from_pretrained(
-            cfg.diffusion.model, torch_dtype=torch.float16, use_auth_token=cfg.token
+            cfg.diffusion.model, torch_dtype=torch.float16, use_auth_token=cfg.token, resume_download=True
         )
         self.pipe = self.pipe.to(self.device)
         self.img_init = None

@@ -244,6 +244,8 @@ def extract_svg_paths(dest_path, letters, script):
             letter_path = paths[int(letter_idx)]
         elif script == "arabic":
             letter_path = paths[len(paths) - int(letter_idx) - 1]
+        else:
+            letter_path = paths[int(letter_idx)]
         new_root.append(letter_path)
     remove_namespace(new_root)
     new_tree = ET.ElementTree(new_root)

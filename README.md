@@ -1,42 +1,57 @@
-# Font-To-Sketch: Morphing Any Font to a Visual Representation
-
-[![Huggingface Space](https://img.shields.io/badge/🤗-Demo%20-yellow.svg)](https://huggingface.co/spaces/bkhmsi/Font-To-Sketch)
-[![Colab Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1wobOAsnLpkIzaRxG5yac8NcV7iCrlycP)
+# Letters Canvas: Diffusion-guided Vector Arabic Semantic Typography
 
 <br>
-<div align="center"><img src="images/languages_car.gif" width="100%"></div>
-<div align="center"><img src="images/animals_7.gif" width="100%"></div>
+<div align="center"><img src="images/mix.gif" width="100%"></div>
 <br>
 
-This project builds on the [Word-As-Image for Semantic Typography](https://wordasimage.github.io/Word-As-Image-Page/) work to support **any** font and morphing whole words into a visual representation of a semantic concept. It is part of an ongoing project with the [ARBML](https://arbml.github.io/website/) community to build open-source Arabic tools using machine learning.
+This project builds on the [Font-To-Sketch: Morphing Any Font to a Visual Representation](https://github.com/BKHMSI/Font-To-Sketch) and [Word-As-Image for Semantic Typography](https://wordasimage.github.io/Word-As-Image-Page/) work to support Arabic words' simultaneous multi-letter morphing into a visual representation of a semantic concept while preserving word legibility.
 
-The demo currently supports the following scripts: **Arabic**, **Simplified Chinese**, **Cyrillic**, **Greek**, **Latin**, **Tamil**. Therefore you can write the text in any language using those scripts. To add support for more fonts please check below.
 
-## Contributing to Font Support
+## Setup
 
-Thank you for your interest in expanding the font collection! To support additional fonts, please follow these steps:
+1. Clone the repo:
+```bash
+git clone https://github.com/WordAsImage/Word-As-Image.git (TO-DO: chnage link)
+cd Word-As-Image
+```
+2. Create a new conda environment and install the libraries:
+```bash
+conda create --name word python=3.8.15
+conda activate word
+bash requirements.sh
+```
+3. Paste your HuggingFace [access token](https://huggingface.co/settings/tokens) for StableDiffusion in the TOKEN file.
+## Run Experiments 
+```bash
+conda activate word
+cd Word-As-Image
 
-1. Navigate to the `code/data/fonts` directory.
-2. Locate the folder corresponding to the script name you wish to add a font for. If the script is not currently supported, create a new folder with the script name.
-3. Add the desired `.ttf` font file to the appropriate folder.
-4. Please ensure the font file is less than 1MB in size.
-5. Retain the original font name when adding the file.
-
-For browsing and downloading open-source fonts, we recommend visiting [Google Fonts](https://fonts.google.com).
-
-Thank you for your contributions in advancing our font selection!
-
+# Please modify the parameters accordingly in the file and run:
+bash run.sh
+```
 ## Examples
 
-The first GIF you see above morphs the word 'car' in 5 languages into a sketch of a car. 
+The first GIF you can see above is for multiple Arabic words showing the morphing process.
 
-The second GIF contains 7 outputs of the program when given the Arabic name of an animal in text and asked to morph it into a visual representation of the actual animal. The input of course can be any text and the output any concept.
+The next image shows the word “YOGA” in Arabic, using nine different fonts.
+<br>
+<div align="center"><img src="images/fonts.png" width="100%"></div>
+<br>
 
-For more examples please see the files under `./images`
+More results for animal names written in Arabic in different fonts, namely 'fox', 'giraffe', 'monkey', from left to right:
 
+<br>
+<div align="center"><img src="images/results_animals.png" width="100%"></div>
+<br>
+More results:
 
-## Todos
-- [x] Pass the initial generated font image through the Encoder
-- [x] Calculate the similarity between the initial generated font image and the generated image
-- [x] Use the similarity as a loss function to improve the generated image
-- [ ] Inspect why the generated image is messed up after adding the new loss (add scaling factor?)
+<br>
+<div align="center"><img src="images/results.png" width="100%"></div>
+<br>
+
+The demo currently also supports other languages as well as shown in the next image.
+
+<br>
+<div align="center"><img src="images/multi-lang.png" width="100%"></div>
+<br>
+

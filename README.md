@@ -9,11 +9,7 @@ This project builds on the [Font-To-Sketch: Morphing Any Font to a Visual Repres
 
 ## Setup
 
-1. Clone the repo:
-```bash
-git clone https://github.com/WordAsImage/Word-As-Image.git (TO-DO: chnage link)
-cd Word-As-Image
-```
+1. Clone the repo
 2. Create a new conda environment and install the libraries:
 ```bash
 conda create --name word python=3.8.15
@@ -24,7 +20,6 @@ bash requirements.sh
 ## Run Experiments 
 ```bash
 conda activate word
-cd Word-As-Image
 
 # Please modify the parameters accordingly in the file and run:
 bash run.sh
@@ -34,6 +29,7 @@ bash run.sh
 The first GIF you can see above is for multiple Arabic words showing the morphing process.
 
 The next image shows the word “YOGA” in Arabic, using nine different fonts.
+
 <br>
 <div align="center"><img src="images/fonts.png" width="100%"></div>
 <br>
@@ -43,6 +39,7 @@ More results for animal names written in Arabic in different fonts, namely 'fox'
 <br>
 <div align="center"><img src="images/results_animals.png" width="100%"></div>
 <br>
+
 More results:
 
 <br>

@@ -6,7 +6,8 @@ pip install svgwrite svgpathtools cssutils numba torch-tools scikit-fmm easydict
 pip install opencv-python==4.5.4.60  
 pip install kornia==0.6.8
 pip install wandb
-pip install shapely vharfbuzz
+pip install shapely
+pip install vharfbuzz==0.2.0
 pip install diffusers==0.8
 pip install easydict matplotlib 
 pip install transformers scipy ftfy accelerate filelock tqdm huggingface-hub 

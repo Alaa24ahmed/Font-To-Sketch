@@ -9,7 +9,7 @@ from utils import edict_2_dict, check_and_create_dir, update
 import wandb
 import warnings
 import os
-
+import numpy as np 
 warnings.filterwarnings("ignore")
 from glob import glob
 
@@ -52,33 +52,35 @@ def parse_args():
         help="the min index and max  inclusive of the region in the word to optimize",
     )
     parser.add_argument(
-        "--use_dot_product_loss",
+        "--use_perceptual_loss",
         type=int,
-        default=0,
-        help="use dot product loss , helps in preserving structure , hurts the meaning",
+        default=1
     )
     parser.add_argument(
-        "--dot_product_loss_weight",
-        type=float,
-        default=0.2,
-        help="dot product loss weight",
+        "--use_ocr_loss",
+        type=int,
+        default=1
     )
+
 
     parser.add_argument(
         "--content_loss_weight", type=float, default=0.001, help="content loss weight"
     )
     parser.add_argument(
-        "--style_loss_weight", type=float, default=0.001, help="style loss weight"
+        "--style_loss_weight", type=float, default=0.000, help="style loss weight"
     )
 
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--use_wandb", type=int, default=0)
     parser.add_argument("--wandb_user", type=str, default="none")
 
-    parser.add_argument("--use_nst_loss", type=int, default=0)
+    parser.add_argument("--use_nst_loss", type=int, default=1)
     parser.add_argument("--use_variational_loss", type=int, default=0)
     parser.add_argument("--variational_loss_weight", type=int, default=1)
     parser.add_argument("--use_blurrer_in_nst", type=int, default=0)
+    parser.add_argument("--perceptual_loss_weight", type=float, default=1)
+    parser.add_argument("--ocr_loss_weight", type=float, default=1)
+
 
     cfg = edict()
     args = parser.parse_args()
@@ -93,10 +95,12 @@ def parse_args():
     cfg.word = cfg.semantic_concept if args.word == "none" else args.word
     cfg.letter = cfg.word
     cfg.script = args.script
-    cfg.use_dot_product_loss = args.use_dot_product_loss
-    cfg.dot_product_loss_weight = args.dot_product_loss_weight
     cfg.use_nst_loss = args.use_nst_loss
-    cfg.content_loss_weight = 0.001*len(cfg.word)
+    cfg.use_perceptual_loss =  args.use_perceptual_loss
+    cfg.use_ocr_loss =  args.use_ocr_loss
+
+
+
     cfg.style_loss_weight = args.style_loss_weight
     cfg.use_variational_loss = args.use_variational_loss
     cfg.variational_loss_weight = args.variational_loss_weight
@@ -116,6 +120,13 @@ def parse_args():
     assert len(optimized_range) == 2
     cfg.optimized_region = list(range(optimized_range[0], optimized_range[1] + 1))
     optimized_region_name = "".join([str(elem) for elem in cfg.optimized_region])
+
+    # cfg.content_loss_weight = 0.001*len(cfg.optimized_region)
+    cfg.content_loss_weight = args.content_loss_weight
+    cfg.perceptual_loss_weight = args.perceptual_loss_weight
+    cfg.ocr_loss_weight = args.ocr_loss_weight
+
+
 
     cfg.batch_size = args.batch_size
     cfg.token = args.token
@@ -148,7 +159,17 @@ def set_config():
     del cfgs
 
     # set experiment dir
-    cfg.signature = f"{cfg.experiment_name}_dot_loss_{cfg.dot_product_loss_weight if cfg.use_dot_product_loss else 0}_content_loss{cfg.content_loss_weight if cfg.use_nst_loss else 0}_useblurNST_{cfg.use_blurrer_in_nst}_angels_loss{cfg.loss.conformal.angeles_w if cfg.loss.conformal.use_conformal_loss else 0 }_seed_{cfg.seed}"
+    cfg.signature = (
+    f"{cfg.experiment_name}"
+    f"_seed_{cfg.seed}"
+    f"{'_ocr_loss_' + str(cfg.ocr_loss_weight) if cfg.use_ocr_loss else ''}"
+    f"{'_perceptual_loss_' + str(cfg.perceptual_loss_weight) if cfg.use_perceptual_loss else ''}"
+    f"{'_content_loss_' + str(cfg.content_loss_weight) if cfg.use_nst_loss else ''}"
+    f"{'_useblurNST_' + str(cfg.use_blurrer_in_nst) if cfg.use_blurrer_in_nst else ''}"
+    f"{'_angels_loss_' + str(cfg.loss.conformal.angeles_w) if cfg.loss.conformal.use_conformal_loss else ''}"
+
+    )
+
     cfg.experiment_dir = osp.join(cfg.log_dir, cfg.signature)
     configfile = osp.join(cfg.experiment_dir, "config.yaml")
     print("Config:", cfg)
@@ -160,7 +181,7 @@ def set_config():
 
     if cfg.use_wandb:
         wandb.init(
-            project="Font-To-Image",
+            project="Word as image",
             entity=cfg.wandb_user,
             name=f"{cfg.semantic_concept}_{cfg.seed}_{cfg.signature}",
             id=wandb.util.generate_id(),

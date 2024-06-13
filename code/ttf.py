@@ -24,6 +24,8 @@ reload(bezier)
 
 
 def fix_single_svg(svg_path, output_path, all_word=False, letters=None):
+    print("*********")
+    print(letters)
     if(all_word):
         target_h_letter = 460
     elif(letters):
@@ -34,7 +36,7 @@ def fix_single_svg(svg_path, output_path, all_word=False, letters=None):
         elif(len(letters) == 3):
             target_h_letter = 500
         elif(len(letters) == 4):
-            target_h_letter = 400
+            target_h_letter = 600
         else:
             target_h_letter = 360
     else:

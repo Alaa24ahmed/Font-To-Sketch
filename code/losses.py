@@ -8,17 +8,19 @@ from easydict import EasyDict
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from torchvision import transforms
-from PIL import Image
 from transformers import CLIPProcessor, CLIPModel
 
 from diffusers import StableDiffusionPipeline
-
+import lpips
 import torch.nn.functional as F
 import torchvision.models as models
 import torchvision
 import wandb
 import torchvision.transforms as transforms
-
+from ocr.recognition_model import load_model
+from typing import List
+from PIL import Image
+from ocr.processor import load_processor
 
 class SDSLoss(nn.Module):
     def __init__(self, cfg, device):
@@ -162,6 +164,10 @@ class SDSLoss(nn.Module):
         # return loss
         return sds_loss
 
+
+        
+         
+        
 
 class ToneLoss(nn.Module):
     def __init__(self, cfg):
@@ -370,11 +376,11 @@ class NSTLoss(nn.Module):
         current_image_features = self.get_features(self.normalize(current_image))
         content_features = current_image_features[0]
         print("content_featueres_shape in combined ", content_features.shape)
-        style_features = current_image_features[1]
+        # style_features = current_image_features[1]
         content_loss = self.content_loss(content_features)
-        style_loss = self.style_loss(style_features)
+        # style_loss = self.style_loss(style_features)
 
-        return content_loss, style_loss
+        return content_loss, 0
 
 
 class VariationLoss(nn.Module):
@@ -389,3 +395,69 @@ class VariationLoss(nn.Module):
 
     def forward(self, image):
         return self.total_variation(image)
+
+class PerceptualLoss(nn.Module):
+    def __init__(self, cfg):
+        super(PerceptualLoss, self).__init__()
+        # Load a pre-trained VGG19 model and use its features for perceptual loss
+        print('before_load')
+        self.lpips_loss = lpips.LPIPS(net='vgg').to('cuda')
+        print('after_load')
+        self.imit = None
+
+    def set_image_init(self, im_init):
+        self.im_init = im_init.permute(2, 0, 1).unsqueeze(0)
+
+    def forward(self, image):
+        # print(self.lpips_loss(self.im_init.detach(), image))
+        return self.lpips_loss(self.im_init.detach(), image).squeeze()
+    
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+import torch
+import torch.nn as nn
+
+
+
+
+
+class OcrLoss(nn.Module):    
+    def __init__(self , im_init ): 
+        super(OcrLoss, self).__init__()
+        self.rec_model, self.rec_processor = load_model(), load_processor()
+        self.rec_model = self.rec_model.float() 
+        self.im_init = im_init.permute(2, 0, 1).unsqueeze(0)
+    
+    def _get_recognition_dict(self, image, languages: List[str], model, processor):
+
+        model_inputs = processor(text=[""], images= [image], lang=languages)
+
+        batch_pixel_values = model_inputs["pixel_values"]
+        batch_langs = model_inputs["langs"]
+        batch_decoder_input = [[model.config.decoder_start_token_id] + lang for lang in batch_langs]
+
+        batch_langs = torch.from_numpy(np.array(batch_langs, dtype=np.int64)).to(model.device)
+        batch_decoder_input = torch.from_numpy(np.array(batch_decoder_input, dtype=np.int64)).to(model.device)
+
+        
+        outputs = model(
+            pixel_values=batch_pixel_values,
+            decoder_input_ids=batch_decoder_input,
+            decoder_langs=batch_langs,
+            return_dict=True
+        )
+        return outputs
+
+    def _get_encoder_encoder_last_level_features(self , image :Image):
+        return_dict = self._get_recognition_dict(image, ["ar"], self.rec_model, self.rec_processor)
+        return return_dict.encoder_last_hidden_state
+
+    def compute_feature_loss(self , output_features, target_features):
+        loss_fn = torch.nn.MSELoss()
+        return loss_fn(output_features, target_features)
+    
+    def forward(self, image):
+        base_image_features = self._get_encoder_encoder_last_level_features(self.im_init)
+        current_iamge_features = self._get_encoder_encoder_last_level_features(image)
+        return self.compute_feature_loss(base_image_features.detach(), current_iamge_features).squeeze()
+
+        

@@ -7,9 +7,11 @@ import torch
 from torch.optim.lr_scheduler import LambdaLR
 import pydiffvg
 import save_svg
-from losses import SDSLoss, ToneLoss, ConformalLoss
+from losses import SDSLoss, ToneLoss, ConformalLoss, PerceptualLoss
 from config import set_config
 from ttf import combine_word_mod
+from clip_score import CLipScoring
+from ocr_score import OcrScoring
 from utils import (
     get_data_augs,
     check_and_create_dir,
@@ -23,7 +25,11 @@ import wandb
 import warnings
 import torch.nn as nn
 import torchvision.models as models
-from losses import NSTLoss, VariationLoss
+from losses import NSTLoss, VariationLoss , OcrLoss
+import numpy as np
+
+from PIL import Image
+import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore")
 
@@ -58,6 +64,21 @@ def process_image_to_pytorch(batch_size, image):
     image = image.repeat(batch_size, 1, 1, 1)
     return image
 
+def get_scheduler(step=None):
+    if step is not None:
+        return np.exp(-(1 / 5) * ((step - 300) / (20)) ** 2)
+    else:
+        return 1
+
+
+def linear_scheduler(step, num_iter=500, change_point=300, rate1=2.0, base=0.0):
+    rate2 = rate1 * 2
+    if step <= change_point:
+        # Linearly increase from base to rate1
+        return ((rate1 - base) / change_point) * step + base
+    else:
+        # Linearly increase from rate1 to rate2 to the end
+        return ((rate2 - rate1) / (num_iter - change_point)) * (step - change_point) + rate1
 
 if __name__ == "__main__":
     cfg = set_config()
@@ -65,7 +86,9 @@ if __name__ == "__main__":
     print("font: ", cfg.font)
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
+    print(f"device {device}")
     print("preprocessing")
+    
     preprocess(
         cfg.font,
         cfg.word,
@@ -91,7 +114,10 @@ if __name__ == "__main__":
     ) * (1 - img_init[:, :, 3:4])
     img_init = img_init[:, :, :3]
 
-    if cfg.loss.use_sds_loss:
+    if cfg.use_ocr_loss:
+        ocr_loss =OcrLoss(img_init)
+
+    if cfg.loss.use_sds_loss :
         sds_loss = SDSLoss(cfg, device)
         im_init = process_image_to_pytorch(cfg.batch_size, img_init)
         im_init = data_augs.forward(im_init)
@@ -138,6 +164,10 @@ if __name__ == "__main__":
             cfg, parameters, device, cfg.optimized_region, shape_groups
         )
 
+    if(cfg.use_perceptual_loss):
+        perceptual_loss = PerceptualLoss(cfg)
+        perceptual_loss.set_image_init(img_init)
+
     lr_lambda = (
         lambda step: learning_rate_decay(
             step,
@@ -182,14 +212,40 @@ if __name__ == "__main__":
             check_and_create_dir(filename)
             save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
+        # img_path = f"{cfg.experiment_dir}/{cfg.font}_{cfg.word}_{cfg.optimized_region}.png"
+        # image = Image.open(img_path)
+        
+    
         x = process_image_to_pytorch(cfg.batch_size, img)
         x_aug = x
         x_aug = data_augs.forward(x)
+        
+        if (step == 1):
+            clip_score = CLipScoring(cfg, device)
+            clip_score_res = clip_score.get_loss(x, cfg.caption)
+            print(f"clip score: {clip_score_res}")
+            
+            
+            ocr_score = OcrScoring(cfg, device)
+            img_path = f"{cfg.experiment_dir}/video-png/iter0001.png"
+            image = Image.open(img_path)
+            resize_width, resize_height = 224, 224  # Example resize dimensions
+            image_resized = image.resize((resize_width, resize_height))
+            image_resized.save("image_being_recognized_resized.png")
+            print("Saved resized image being recognized to image_being_recognized_resized.png")
 
+            # image.show()
+            ocr_score_res = ocr_score.get_score(image_resized)
+            print(f"ocr score: {ocr_score_res}")
+            
+            
         # compute diffusion loss per pixel
+        loss = 0 
+        
         sds_loss_res = sds_loss(x_aug)
         loss = sds_loss_res
-
+        print(f"sds loss: {sds_loss_res}")
+    
         if cfg.loss.tone.use_tone_loss:
             tone_loss_res = tone_loss(x, step)
             print(f"tone loss: {tone_loss_res}")
@@ -198,23 +254,41 @@ if __name__ == "__main__":
         if cfg.loss.conformal.use_conformal_loss:
             loss_angles = conformal_loss()
             loss_angles = cfg.loss.conformal.angeles_w * loss_angles
-            # print(f"loss_angles: {loss_angles}")
+            print(f"loss_angles: {loss_angles}")
             loss = loss + loss_angles
+
+        if(cfg.use_perceptual_loss):
+
+            perceptual_loss_res = cfg.perceptual_loss_weight * perceptual_loss(x) 
+            print(f"perceptual loss: {perceptual_loss_res}")
+            loss = loss + perceptual_loss_res
+
 
         if cfg.use_nst_loss:
             loss_content, loss_style = nst_loss(x)
-            loss = (
-                loss
-                + cfg.content_loss_weight * loss_content
-                + cfg.style_loss_weight * loss_style
-            )
+            loss_content = cfg.content_loss_weight * loss_content
+            loss += loss_content
+            
             print(f"loss_content: {loss_content}")
-            print(f"loss_style: {loss_style}")
 
         if cfg.use_variational_loss:
             loss_variational = variational_loss(x)
             loss = loss + cfg.variational_loss_weight * loss_variational
             print(f"loss_variational: {loss_variational}")
+
+        
+        if cfg.use_ocr_loss:
+            loss_ocr = ocr_loss(x) * cfg.ocr_loss_weight
+            loss = loss + loss_ocr
+            print(f"loss_ocr: {loss_ocr}" )
+            
+        
+        
+        #print and deal with the confidencies first 
+        # ocr_score_res = ocr_score.get_score(x)
+        # print(f"ocr score: {ocr_score_res}")
+
+        # total_score = (1 - α) * clip_score_res + α * ocr_score_res
 
         if cfg.use_wandb:
             wandb.log({"learning_rate": optim.param_groups[0]["lr"]}, step=step)
@@ -222,10 +296,19 @@ if __name__ == "__main__":
             wandb.log({"img": wandb.Image(plt)}, step=step)
             plt.close()
             wandb.log({"sds_loss": sds_loss_res.item()}, step=step)
-            wandb.log({"dist_loss": tone_loss_res}, step=step)
-            wandb.log({"loss_angles": loss_angles}, step=step)
-            wandb.log({"loss_content": loss_content}, step=step)
-            wandb.log({"loss_style": loss_style}, step=step)
+            if cfg.loss.tone.use_tone_loss:
+                wandb.log({"tone_loss": tone_loss_res.item()}, step=step)
+            if cfg.loss.conformal.use_conformal_loss:
+                wandb.log({"loss_angles": loss_angles.item()}, step=step)
+            if cfg.use_nst_loss and cfg.content_loss_weight > 0.0:
+                wandb.log({"loss_content": loss_content.item()}, step=step)
+            if cfg.use_variational_loss:
+                wandb.log({"loss_variational": loss_variational.item()}, step=step)
+            if cfg.use_perceptual_loss and cfg.perceptual_loss_weight > 0.0 :
+                wandb.log({"perceptual_loss": perceptual_loss_res.item()}, step=step)
+            if cfg.use_ocr_loss and cfg.ocr_loss_weight > 0.0:
+                wandb.log({"ocr_loss": loss_ocr.item()}, step=step)
+        
         t_range.set_postfix({"loss": loss.item()})
         print(f"loss: {loss}")
         print(f"loss_item: {loss.item()}")
@@ -233,6 +316,7 @@ if __name__ == "__main__":
         loss.backward()
         optim.step()
         scheduler.step()
+        
 
     filename = os.path.join(cfg.experiment_dir, "output-svg", "output.svg")
     check_and_create_dir(filename)
@@ -251,10 +335,15 @@ if __name__ == "__main__":
         check_and_create_dir(filename)
         imshow = img.detach().cpu()
         pydiffvg.imwrite(imshow, filename, gamma=gamma)
-        if cfg.use_wandb:
-            plt.imshow(img.detach().cpu())
-            wandb.log({"img": wandb.Image(plt)}, step=step)
-            plt.close()
+    
+    
+    if cfg.use_wandb:    
+        img_path = f"{cfg.experiment_dir}/{cfg.font}_{cfg.word}_{cfg.optimized_region}.png"
+        pil_im = Image.open(img_path)
+        plt = plt.imshow(pil_im)
+        wandb.log({"final": wandb.Image(plt)}, step=500)
+        plt.close()
+
 
     if cfg.save.video:
         print("saving video")

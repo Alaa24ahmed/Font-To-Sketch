@@ -9,6 +9,7 @@ import cv2
 from ttf import font_string_to_svgs, normalize_svg_size, extract_svg_paths
 import torch
 import numpy as np
+import wandb
 
 
 def edict_2_dict(x):
@@ -221,6 +222,7 @@ def save_image(img, filename, gamma=1):
     imshow = img.detach().cpu()
     pydiffvg.imwrite(imshow, filename, gamma=gamma)
 
+    
 
 # def get_letter_ids(letter, word, shape_groups):
 #     for group, l in zip(shape_groups, word):
@@ -325,7 +327,16 @@ def combine_word(svg_path, word, letter, font, experiment_dir, script):
         img.shape[0], img.shape[1], 3, device="cuda:0"
     ) * (1 - img[:, :, 3:4])
     img = img[:, :, :3]
-    save_image(img, f"{experiment_dir}/{font}_{word}_{letter}.png")
+
+    img_path = f"{experiment_dir}/{font}_{word}_{letter}.png"
+    save_image(img, img_path)
+
+    normalized_path = os.path.normpath(experiment_dir)
+    # Split the path into parts
+    path_parts = normalized_path.split(os.sep)
+    # Return the last part
+    save_image(img, f"{experiment_dir}/{path_parts[-1]}.png")
+        
 
 
 def create_video(num_iter, experiment_dir, video_frame_freq):

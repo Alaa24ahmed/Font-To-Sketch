@@ -170,11 +170,11 @@ def set_config():
         random.seed(cfg.seed)
         npr.seed(cfg.seed)
         torch.manual_seed(cfg.seed)
-        torch.cuda.manual_seed(cfg.seed)
-        torch.backends.cudnn.benchmark = False
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-        torch.use_deterministic_algorithms(True, warn_only=True)
-        torch.backends.cudnn.deterministic = True
+        # torch.cuda.manual_seed(cfg.seed)
+        # torch.backends.cudnn.benchmark = False
+        # os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+        # torch.use_deterministic_algorithms(True, warn_only=True)
+        # torch.backends.cudnn.deterministic = True
     else:
         assert False
 

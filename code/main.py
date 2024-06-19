@@ -24,6 +24,10 @@ import warnings
 import torch.nn as nn
 import torchvision.models as models
 from losses import NSTLoss, VariationLoss
+import torch_xla.core.xla_model as xm
+import torch_xla.utils.utils as xu
+import time 
+
 
 warnings.filterwarnings("ignore")
 
@@ -55,16 +59,18 @@ def choose_region(word) -> (int, int):
 
 def process_image_to_pytorch(batch_size, image):
     image = image.unsqueeze(0).permute(0, 3, 1, 2)  # HWC -> NCHW
-    image = image.repeat(batch_size, 1, 1, 1)
+    image = image.repeat(batch_size, 1, 1, 1).to(device)
     return image
 
 
 if __name__ == "__main__":
+    start_time_init = time.time() 
     cfg = set_config()
     print(cfg)
     print("font: ", cfg.font)
-    pydiffvg.set_use_gpu(torch.cuda.is_available())
-    device = pydiffvg.get_device()
+    import torch_xla.core.xla_model as xm
+    device  = xm.xla_device()
+    print(f"device {device}")
     print("preprocessing")
     preprocess(
         cfg.font,
@@ -86,24 +92,35 @@ if __name__ == "__main__":
 
     scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes, shape_groups)
     img_init = render(w, h, 2, 2, 0, None, *scene_args)
+    img_init = img_init.to(device)
+
     img_init = img_init[:, :, 3:4] * img_init[:, :, :3] + torch.ones(
         img_init.shape[0], img_init.shape[1], 3, device=device
     ) * (1 - img_init[:, :, 3:4])
     img_init = img_init[:, :, :3]
-
+    end_time_init = time.time() 
+    print(f"initiliazaiton time {end_time_init - start_time_init}")
+    
+    print(f"initiliaing losses ")
+    start_init_sds = time.time() 
+    
     if cfg.loss.use_sds_loss:
         sds_loss = SDSLoss(cfg, device)
         im_init = process_image_to_pytorch(cfg.batch_size, img_init)
         im_init = data_augs.forward(im_init)
         sds_loss.set_image_init(im_init)
 
+    print(f"initliazed sds in {time.time()-start_init_sds}")
+    
+    start_init_nst = time.time() 
+    
     if cfg.use_nst_loss:
         nst_loss = NSTLoss(
             cfg, process_image_to_pytorch(cfg.batch_size, img_init), device
         )
+    
+    print(f"initliazed nst in {time.time() - start_init_nst} ")
 
-    if cfg.use_variational_loss:
-        variational_loss = VariationLoss(cfg)
 
     im_init = im_init.squeeze(0).permute(1, 2, 0)
 
@@ -156,18 +173,24 @@ if __name__ == "__main__":
     # training loop
     t_range = tqdm(range(num_iter))
     for step in t_range:
+        
         optim.zero_grad()
 
         # render image
+        start_time_scene = time.time() 
+        
         scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes, shape_groups)
         img = render(w, h, 2, 2, step, None, *scene_args)
+        img = img.to(device)
+
 
         # compose image with white background
         img = img[:, :, 3:4] * img[:, :, :3] + torch.ones(
             img.shape[0], img.shape[1], 3, device=device
         ) * (1 - img[:, :, 3:4])
         img = img[:, :, :3]
-
+        print(f"time initilizing scene {time.time() - start_time_scene}")
+        
         if cfg.save.video and (
             step % cfg.save.video_frame_freq == 0 or step == num_iter - 1
         ):
@@ -182,56 +205,77 @@ if __name__ == "__main__":
             check_and_create_dir(filename)
             save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
+        start_sds_stuff = time.time() 
+        
         x = process_image_to_pytorch(cfg.batch_size, img)
+        x = x.to(device)
+        print(f"preporcessed image ")
         x_aug = x
         x_aug = data_augs.forward(x)
+        x_aug = data_augs.forward(x).to(device)
+        print(f"data aug done")
+        
 
         # compute diffusion loss per pixel
         sds_loss_res = sds_loss(x_aug)
+        print(f"sds_loss_res {sds_loss_res}")
         loss = sds_loss_res
+        print(f"time for sds {time.time() - start_sds_stuff}")
 
-        if cfg.loss.tone.use_tone_loss:
-            tone_loss_res = tone_loss(x, step)
-            print(f"tone loss: {tone_loss_res}")
-            loss = loss + tone_loss_res
+        # if cfg.loss.tone.use_tone_loss:
+        #     tone_loss_res = tone_loss(x, step)
+        #     print(f"tone loss: {tone_loss_res}")
+        #     loss = loss + tone_loss_res
 
-        if cfg.loss.conformal.use_conformal_loss:
-            loss_angles = conformal_loss()
-            loss_angles = cfg.loss.conformal.angeles_w * loss_angles
-            # print(f"loss_angles: {loss_angles}")
-            loss = loss + loss_angles
+        # if cfg.loss.conformal.use_conformal_loss:
+        #     loss_angles = conformal_loss()
+        #     loss_angles = cfg.loss.conformal.angeles_w * loss_angles
+        #     # print(f"loss_angles: {loss_angles}")
+        #     loss = loss + loss_angles
 
-        if cfg.use_nst_loss:
-            loss_content, loss_style = nst_loss(x)
-            loss = (
-                loss
-                + cfg.content_loss_weight * loss_content
-                + cfg.style_loss_weight * loss_style
-            )
-            print(f"loss_content: {loss_content}")
-            print(f"loss_style: {loss_style}")
+        # if cfg.use_nst_loss:
+        #     loss_content, loss_style = nst_loss(x)
+        #     loss = (
+        #         loss
+        #         + cfg.content_loss_weight * loss_content
+        #         + cfg.style_loss_weight * loss_style
+        #     )
+        #     print(f"loss_content: {loss_content}")
+        #     print(f"loss_style: {loss_style}")
 
-        if cfg.use_variational_loss:
-            loss_variational = variational_loss(x)
-            loss = loss + cfg.variational_loss_weight * loss_variational
-            print(f"loss_variational: {loss_variational}")
 
-        if cfg.use_wandb:
-            wandb.log({"learning_rate": optim.param_groups[0]["lr"]}, step=step)
-            plt.imshow(img.detach().cpu())
-            wandb.log({"img": wandb.Image(plt)}, step=step)
-            plt.close()
-            wandb.log({"sds_loss": sds_loss_res.item()}, step=step)
-            wandb.log({"dist_loss": tone_loss_res}, step=step)
-            wandb.log({"loss_angles": loss_angles}, step=step)
-            wandb.log({"loss_content": loss_content}, step=step)
-            wandb.log({"loss_style": loss_style}, step=step)
+
+        # if cfg.use_wandb:
+        #     wandb.log({"learning_rate": optim.param_groups[0]["lr"]}, step=step)
+        #     plt.imshow(img.detach().cpu())
+        #     wandb.log({"img": wandb.Image(plt)}, step=step)
+        #     plt.close()
+        #     wandb.log({"sds_loss": sds_loss_res.item()}, step=step)
+        #     wandb.log({"dist_loss": tone_loss_res}, step=step)
+        #     wandb.log({"loss_angles": loss_angles}, step=step)
+        #     wandb.log({"loss_content": loss_content}, step=step)
+        #     wandb.log({"loss_style": loss_style}, step=step)
         t_range.set_postfix({"loss": loss.item()})
         print(f"loss: {loss}")
         print(f"loss_item: {loss.item()}")
 
+        print(f"x device: {x.device}, x_aug device: {x_aug.device}, loss device: {loss.device}")
+        xm.mark_step()
+        
+        import torch_xla.debug.metrics as met
+
+        # Profile the step
+        print(met.metrics_report())
+
+        start_backward_time = time.time() 
+        print(f"backward started")
         loss.backward()
-        optim.step()
+        print(f"finsihed backprob in {time.time() - start_backward_time}")
+        
+        xm.optimizer_step(optim)
+        xm.mark_step()
+        xm.rendezvous('sync')  # Synchronize all processes
+
         scheduler.step()
 
     filename = os.path.join(cfg.experiment_dir, "output-svg", "output.svg")

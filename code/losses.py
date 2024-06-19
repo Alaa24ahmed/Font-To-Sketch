@@ -18,7 +18,11 @@ import torchvision.models as models
 import torchvision
 import wandb
 import torchvision.transforms as transforms
-
+import torch_xla
+import torch_xla.core.xla_model as xm
+import torch_xla.amp as xla_amp
+import torch_xla.debug.metrics as met
+import time 
 
 class SDSLoss(nn.Module):
     def __init__(self, cfg, device):
@@ -39,7 +43,7 @@ class SDSLoss(nn.Module):
         self.step = 0
 
     def embed_text(self):
-        # tokenizer and embed text
+        start_time = time.time()
         text_input = self.pipe.tokenizer(
             self.cfg.caption,
             padding="max_length",
@@ -67,99 +71,122 @@ class SDSLoss(nn.Module):
         )
         del self.pipe.tokenizer
         del self.pipe.text_encoder
+        end_time = time.time()
+        print(f"embed_text time: {end_time - start_time:.4f} seconds")
 
     def set_image_init(self, img_init):
+        start_time = time.time()
         img_init = img_init * 2.0 - 1.0
-        with torch.cuda.amp.autocast():
+        with xla_amp.autocast(self.device):
             self.latent_img_init = self.pipe.vae.encode(img_init).latent_dist.sample()
         self.latent_img_init = (
             0.18215 * self.latent_img_init
         )  # scaling_factor * init_latents
-        # make latent_img_init doesn't require grad
         self.latent_img_init = self.latent_img_init.detach()
+        end_time = time.time()
+        print(f"set_image_init time: {end_time - start_time:.4f} seconds")
 
     def forward(self, x_aug):
         sds_loss = 0
 
-        # generate latent_img_init
         if self.latent_img_init is None:
             raise ValueError("Image init is None")
 
-        # encode rendered image
+        start_time = time.time()
         x = x_aug * 2.0 - 1.0
-        with torch.cuda.amp.autocast():
+        end_time = time.time()
+        print(f"x_aug processing time: {end_time - start_time:.4f} seconds")
+
+        start_time = time.time()
+        with xla_amp.autocast(self.device):
             unscaled_latent_img = self.pipe.vae.encode(x).latent_dist.sample()
+        print("did auto casting ")
+        end_time = time.time()
+        print(f"vae encode time: {end_time - start_time:.4f} seconds")
+
         current_latent_img = (
             0.18215 * unscaled_latent_img
         )  # scaling_factor * init_latents
 
-        with torch.inference_mode():
+        start_time = time.time()
+        with torch.no_grad():
             self.eval()
-            # sample timesteps
             timestep = torch.randint(
                 low=50,
-                high=min(950, self.cfg.diffusion.timesteps)
-                - 1,  # avoid highest timestep | diffusion.timesteps=1000
+                high=min(950, self.cfg.diffusion.timesteps) - 1,
                 size=(current_latent_img.shape[0],),
                 device=self.device,
                 dtype=torch.long,
             )
+        print(f"time step")
+        end_time = time.time()
+        print(f"timestep sampling time: {end_time - start_time:.4f} seconds")
 
-            # add noise
-            eps = torch.randn_like(current_latent_img)
-            # zt = alpha_t * latent_z + sigma_t * eps
-            noised_latent_zt = self.pipe.scheduler.add_noise(
-                current_latent_img, eps, timestep
-            )
+        start_time = time.time()
+        eps = torch.randn_like(current_latent_img.clone())
+        noised_latent_zt = self.pipe.scheduler.add_noise(
+            current_latent_img.clone(), eps, timestep
+        )
+        print(f"noised ")
+        end_time = time.time()
+        print(f"add_noise time: {end_time - start_time:.4f} seconds")
 
-            # denoise
-            z_in = torch.cat(
-                [noised_latent_zt] * 2
-            )  # expand latents for classifier free guidance
-            timestep_in = torch.cat([timestep] * 2)
-            with torch.autocast(device_type="cuda", dtype=torch.float16):
-                eps_t_uncond, eps_t = (
-                    self.pipe.unet(
-                        z_in, timestep, encoder_hidden_states=self.text_embeddings
-                    )
-                    .sample.float()
-                    .chunk(2)
+        start_time = time.time()
+        z_in = torch.cat([noised_latent_zt.clone()] * 2)
+        timestep_in = torch.cat([timestep] * 2)
+        print(f"denoised")
+        end_time = time.time()
+        print(f"denoise preparation time: {end_time - start_time:.4f} seconds")
+
+        start_time = time.time()
+        with xla_amp.autocast(self.device):
+            eps_t_uncond, eps_t = (
+                self.pipe.unet(
+                    z_in, timestep, encoder_hidden_states=self.text_embeddings
                 )
-
-            eps_t = eps_t_uncond + self.cfg.diffusion.guidance_scale * (
-                eps_t - eps_t_uncond
+                .sample.float()
+                .chunk(2)
             )
+        print(f"second autocasting")
+        end_time = time.time()
+        print(f"unet forward time: {end_time - start_time:.4f} seconds")
 
-            # w = alphas[timestep]^0.5 * (1 - alphas[timestep]) = alphas[timestep]^0.5 * sigmas[timestep]
-            grad_z = (
-                self.alphas[timestep] ** 0.5 * self.sigmas[timestep] * (eps_t - eps)
-            )
+        start_time = time.time()
+        eps_t = eps_t_uncond + self.cfg.diffusion.guidance_scale * (
+            eps_t - eps_t_uncond
+        )
+        print("CFG DONE ")
+        end_time = time.time()
+        print(f"CFG time: {end_time - start_time:.4f} seconds")
 
-            assert torch.isfinite(grad_z).all()
-            # grad_z = torch.nan_to_num(grad_z.detach().float(), 0.0, 0.0, 0.0)
-            grad_z = torch.nan_to_num(grad_z.float(), 0.0, 0.0, 0.0)
+        start_time = time.time()
+        grad_z = (
+            self.alphas[timestep] ** 0.5 * self.sigmas[timestep] * (eps_t - eps)
+        )
+        print("grad z calculated")
+        end_time = time.time()
+        print(f"grad_z calculation time: {end_time - start_time:.4f} seconds")
 
-        sds_loss = grad_z.clone() * current_latent_img.clone()
-
+        start_time = time.time()
+        grad_z = torch.nan_to_num(grad_z.float(), 0.0, 0.0, 0.0)
+        print(f"grad_z calculated")
+        end_time = time.time()
+        print(f"grad_z nan_to_num time: {end_time - start_time:.4f} seconds")
+        
+        start_time = time.time()
+        sds_loss = grad_z.clone() * current_latent_img.clone().to(self.device)
         sds_loss = sds_loss.sum(1).mean()
-        # print(f"sds_loss: {sds_loss}")
-
-        # targets = (current_latent_img - grad_z.clone()).detach()
-
-        # loss = (
-        #     0.5
-        #     * F.mse_loss(current_latent_img.float(), targets, reduction="sum")
-        #     / current_latent_img.shape[0]
-        # )
-
-        # if self.cfg.use_dot_product_loss:
-        #     init_im_loss = self.latent_img_init.clone() * current_latent_img.clone()
-        #     init_im_loss = init_im_loss.sum(1).mean() * self.cfg.dot_product_loss_weight
-        #     sds_loss = sds_loss - init_im_loss
-        del grad_z
+        print(f"sds_loss_done")
+        end_time = time.time()
+        print(f"sds_loss calculation time: {end_time - start_time:.4f} seconds")
 
         self.step += 1
-        # return loss
+        start_time_deletion = time.time() 
+    
+        del grad_z
+        
+        print(f"deleting gradz time {time.time() - start_time_deletion}")
+
         return sds_loss
 
 

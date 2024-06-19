@@ -320,9 +320,13 @@ def combine_word(svg_path, word, letter, font, experiment_dir, script):
     scene_args = pydiffvg.RenderFunction.serialize_scene(
         canvas_width, canvas_height, shapes_word, shape_groups_word
     )
+    import torch 
+    import torch_xla.core.xla_model as xm
+
+    device  = xm.xla_device()
     img = render(canvas_width, canvas_height, 2, 2, 0, None, *scene_args)
     img = img[:, :, 3:4] * img[:, :, :3] + torch.ones(
-        img.shape[0], img.shape[1], 3, device="cuda:0"
+        img.shape[0], img.shape[1], 3, device=device
     ) * (1 - img[:, :, 3:4])
     img = img[:, :, :3]
     save_image(img, f"{experiment_dir}/{font}_{word}_{letter}.png")

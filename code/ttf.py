@@ -17,9 +17,12 @@ import xml.etree.ElementTree as ET
 from svg.path import parse_path
 import matplotlib.pyplot as plt
 
-device = torch.device(
-    "cuda" if (torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu"
-)
+
+import torch_xla.core.xla_model as xm
+device  = xm.xla_device()
+# device = torch.device(
+#     "cuda" if (torch.cuda.is_available() and torch.cuda.device_count() > 0) else "cpu"
+# )
 reload(bezier)
 
 

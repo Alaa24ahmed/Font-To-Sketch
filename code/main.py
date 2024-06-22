@@ -82,12 +82,13 @@ def linear_scheduler(step, num_iter=500, change_point=300, rate1=2.0, base=0.0):
 
 if __name__ == "__main__":
     cfg = set_config()
-    print(cfg)
+    # print(cfg)
     print("font: ", cfg.font)
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
     print(f"device {device}")
     print("preprocessing")
+    
     
     preprocess(
         cfg.font,
@@ -155,6 +156,9 @@ if __name__ == "__main__":
         save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
     num_iter = cfg.num_iter
+    if(cfg.ranking_score):
+        num_iter = cfg.ranking_num_iter
+
     pg = [{"params": parameters["point"], "lr": cfg.lr_base["point"]}]
     optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
 
@@ -218,26 +222,8 @@ if __name__ == "__main__":
     
         x = process_image_to_pytorch(cfg.batch_size, img)
         x_aug = x
-        x_aug = data_augs.forward(x)
-        
-        if (step == 1):
-            clip_score = CLipScoring(cfg, device)
-            clip_score_res = clip_score.get_loss(x, cfg.caption)
-            print(f"clip score: {clip_score_res}")
-            
-            
-            ocr_score = OcrScoring(cfg, device)
-            img_path = f"{cfg.experiment_dir}/video-png/iter0001.png"
-            image = Image.open(img_path)
-            resize_width, resize_height = 224, 224  # Example resize dimensions
-            image_resized = image.resize((resize_width, resize_height))
-            image_resized.save("image_being_recognized_resized.png")
-            print("Saved resized image being recognized to image_being_recognized_resized.png")
-
-            # image.show()
-            ocr_score_res = ocr_score.get_score(image_resized)
-            print(f"ocr score: {ocr_score_res}")
-            
+        x_aug = data_augs.forward(x) 
+       
             
         # compute diffusion loss per pixel
         loss = 0 
@@ -316,7 +302,6 @@ if __name__ == "__main__":
         loss.backward()
         optim.step()
         scheduler.step()
-        
 
     filename = os.path.join(cfg.experiment_dir, "output-svg", "output.svg")
     check_and_create_dir(filename)
@@ -328,14 +313,30 @@ if __name__ == "__main__":
         cfg.optimized_region,
         cfg.font,
         cfg.experiment_dir,
-        cfg.script,
+        cfg.script, h, w,
     )
+
     if cfg.save.image:
         filename = os.path.join(cfg.experiment_dir, "output-png", "output.png")
         check_and_create_dir(filename)
         imshow = img.detach().cpu()
         pydiffvg.imwrite(imshow, filename, gamma=gamma)
-    
+
+    if(cfg.ranking_score):
+        ocr_score = OcrScoring(cfg, device)
+        image = Image.open( f"{cfg.experiment_dir}/{cfg.font}_{cfg.word}_{cfg.optimized_region}.png")
+        print("hereeee")
+        ocr_score_res = ocr_score.get_score(image)
+        print(f"ocr score: {ocr_score_res}")
+        clip_score = CLipScoring(cfg, device)
+        clip_score_res = clip_score.get_loss(x, cfg.caption)
+        print(f"clip score: {clip_score_res}")
+        check_and_create_dir(f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_clip_score.txt")
+        with open(f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_clip_score.txt", 'a', encoding="utf-8") as file:
+            file.write(str(cfg.optimized_region) + " " + str(clip_score_res) + '\n')
+        with open(f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_ocr_score.txt", 'a', encoding="utf-8") as file:
+            file.write(str(cfg.optimized_region) + " " + str(ocr_score_res) + '\n')
+
     
     if cfg.use_wandb:    
         img_path = f"{cfg.experiment_dir}/{cfg.font}_{cfg.word}_{cfg.optimized_region}.png"
@@ -344,10 +345,10 @@ if __name__ == "__main__":
         wandb.log({"final": wandb.Image(plt)}, step=500)
         plt.close()
 
-
-    if cfg.save.video:
-        print("saving video")
-        create_video(cfg.num_iter, cfg.experiment_dir, cfg.save.video_frame_freq)
+    if(not cfg.ranking_score):
+        if cfg.save.video:
+            print("saving video")
+            create_video(cfg.num_iter, cfg.experiment_dir, cfg.save.video_frame_freq)
 
     if cfg.use_wandb:
         wandb.finish()

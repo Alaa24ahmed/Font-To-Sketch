@@ -233,7 +233,7 @@ def get_letter_ids(letter, word, shape_groups):
     return [int(x) for x in shape_groups[letter].shape_ids]
 
 
-def combine_word(svg_path, word, letter, font, experiment_dir, script):
+def combine_word(svg_path, word, letter, font, experiment_dir, script,  h, w, svg_result_path = "output-svg//output.svg", step = 0):
     svg_path = svg_path[:-7]
     word_svg= f"{svg_path}.svg"
     normalize_svg_size(svg_path)
@@ -266,7 +266,7 @@ def combine_word(svg_path, word, letter, font, experiment_dir, script):
     c_w = (-w_min + w_max) / 2
     c_h = (-h_min + h_max) / 2
 
-    svg_result = os.path.join(experiment_dir, "output-svg", "output.svg")
+    svg_result = os.path.join(experiment_dir, svg_result_path)
     canvas_width, canvas_height, shapes, shape_groups = pydiffvg.svg_to_scene(
         svg_result
     )
@@ -309,22 +309,23 @@ def combine_word(svg_path, word, letter, font, experiment_dir, script):
 
     for j, s in enumerate(letter_ids):
         shapes_word[s] = shapes[j]
-
+    
     save_svg.save_svg(
         f"{experiment_dir}/{font}_{word}_{letter}.svg",
-        canvas_width,
-        canvas_height,
+        w,
+        h,
         shapes_word,
         shape_groups_word,
     )
-
     render = pydiffvg.RenderFunction.apply
-    scene_args = pydiffvg.RenderFunction.serialize_scene(
-        canvas_width, canvas_height, shapes_word, shape_groups_word
+    scene_args_x = pydiffvg.RenderFunction.serialize_scene(
+        w, h, shapes_word, shape_groups_word
     )
-    img = render(canvas_width, canvas_height, 2, 2, 0, None, *scene_args)
+    img = render(w, h, 2, 2, step, None, *scene_args_x)
+
+    device = pydiffvg.get_device()
     img = img[:, :, 3:4] * img[:, :, :3] + torch.ones(
-        img.shape[0], img.shape[1], 3, device="cuda:0"
+        img.shape[0], img.shape[1], 3, device=device
     ) * (1 - img[:, :, 3:4])
     img = img[:, :, :3]
 

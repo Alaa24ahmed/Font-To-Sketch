@@ -22,8 +22,8 @@ import matplotlib.pyplot as plt
 from PIL import Image
 # from surya.surya.ocr import run_ocr
 # from surya.surya.model.detection import segformer
-from surya.surya.model.recognition.model import load_model
-from surya.surya.model.recognition.processor import load_processor
+from surya_ocr.surya.model.recognition.model import load_model
+from surya_ocr.surya.model.recognition.processor import load_processor
 
 
 from typing import List
@@ -35,8 +35,8 @@ import numpy as np
 import torch.nn.functional as F
 # from surya.surya.postprocessing.math.latex import fix_math, contains_math
 # from surya.surya.postprocessing.text import truncate_repetitions
-from surya.surya.settings import settings
-from surya.surya.schema import TextLine, OCRResult
+from surya_ocr.surya.settings import settings
+from surya_ocr.surya.schema import TextLine, OCRResult
 
 class OcrScoring(nn.Module):    
     def __init__(self, cfg, device): 

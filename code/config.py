@@ -12,7 +12,24 @@ import os
 import numpy as np 
 warnings.filterwarnings("ignore")
 from glob import glob
+import re
 
+def parse_ocr_line(line):
+    match = re.match(r'(\[.*?\])\s\(\[(.*?)\],\s\[(.*?)\]\)', line)
+    if match:
+        indices = match.group(1)
+        ocr_word = match.group(2)
+        ocr_score = float(match.group(3))
+        return indices, ocr_word, ocr_score
+    return None, None, None
+
+def parse_clip_line(line):
+    match = re.match(r'(\[.*?\])\s(.*)', line)
+    if match:
+        indices = match.group(1)
+        clip_score = float(match.group(2))
+        return indices, clip_score
+    return None, None
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -54,12 +71,12 @@ def parse_args():
     parser.add_argument(
         "--use_perceptual_loss",
         type=int,
-        default=1
+        default=0
     )
     parser.add_argument(
         "--use_ocr_loss",
         type=int,
-        default=1
+        default=0
     )
 
 
@@ -74,19 +91,23 @@ def parse_args():
     parser.add_argument("--use_wandb", type=int, default=0)
     parser.add_argument("--wandb_user", type=str, default="none")
 
-    parser.add_argument("--use_nst_loss", type=int, default=1)
+    parser.add_argument("--use_nst_loss", type=int, default=0)
     parser.add_argument("--use_variational_loss", type=int, default=0)
     parser.add_argument("--variational_loss_weight", type=int, default=1)
     parser.add_argument("--use_blurrer_in_nst", type=int, default=0)
     parser.add_argument("--perceptual_loss_weight", type=float, default=1)
     parser.add_argument("--ocr_loss_weight", type=float, default=1)
 
+    parser.add_argument("--ranking_score", type=int, default=0)
+    parser.add_argument("--ranking_num_iter", type=int, default=1)
+    parser.add_argument("--ranking", type=int, default=0)
+
 
     cfg = edict()
     args = parser.parse_args()
-    with open("TOKEN", "r") as f:
+    with open("TOKEN", "r", encoding='utf-8') as f:
         setattr(args, "token", f.read().replace("\n", ""))
-
+    
     cfg.config = args.config
     cfg.experiment = args.experiment
     cfg.seed = args.seed
@@ -98,6 +119,10 @@ def parse_args():
     cfg.use_nst_loss = args.use_nst_loss
     cfg.use_perceptual_loss =  args.use_perceptual_loss
     cfg.use_ocr_loss =  args.use_ocr_loss
+
+    cfg.ranking_score = args.ranking_score
+    cfg.ranking_num_iter = args.ranking_num_iter
+    cfg.ranking = args.ranking
 
 
 
@@ -115,8 +140,49 @@ def parse_args():
 
     cfg.log_dir = f"{args.log_dir}/{cfg.script}"
 
-    # cfg.optimized_region = list(map(int, args.optimized_region.strip("[]").split(",")))
-    optimized_range = list(map(int, args.optimized_region.strip("[]").split(",")))
+    optimized_region = args.optimized_region
+
+    if(cfg.ranking):
+        ocr_data = {}
+        clip_data = {}
+
+        clip_score_file = f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_clip_score.txt"
+        with open(clip_score_file, "r") as file:
+            for line in file:
+                indices, clip_score = parse_clip_line(line)
+                if indices:
+                    clip_data[indices] = clip_score
+
+        ocr_score_file = f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_ocr_score.txt"
+        with open(ocr_score_file, "r") as file:
+            for line in file:
+                indices, ocr_word, ocr_score = parse_ocr_line(line)
+                if indices:
+                    ocr_data[indices] = {'ocr_word': ocr_word, 'ocr_score': ocr_score}
+
+        print(f"OCR Data: {ocr_data}")
+        print(f"Clip Data: {clip_data}")
+        # Combine the scores and store in a list
+        combined_scores = []
+        for indices in ocr_data.keys():
+            if indices in clip_data:
+                total_score = ocr_data[indices]['ocr_score'] + clip_data[indices]
+                combined_scores.append((indices, ocr_data[indices]['ocr_word'], total_score))
+
+        # Sort the combined scores based on the total score
+        sorted_combined_scores = sorted(combined_scores, key=lambda x: x[2], reverse=True)
+
+        # Print the sorted combined scores
+        for indices, ocr_word, total_score in sorted_combined_scores:
+            print(f"Indices: {indices}, Total Score: {total_score}")
+
+        if sorted_combined_scores:
+            indices, ocr_word, total_score = sorted_combined_scores[0]
+        optimized_region = indices
+
+    optimized_range = list(map(int, optimized_region.strip("[]").split(",")))
+    if len(optimized_range) == 1:
+        optimized_range.append(optimized_range[0])
     assert len(optimized_range) == 2
     cfg.optimized_region = list(range(optimized_range[0], optimized_range[1] + 1))
     optimized_region_name = "".join([str(elem) for elem in cfg.optimized_region])
@@ -125,8 +191,6 @@ def parse_args():
     cfg.content_loss_weight = args.content_loss_weight
     cfg.perceptual_loss_weight = args.perceptual_loss_weight
     cfg.ocr_loss_weight = args.ocr_loss_weight
-
-
 
     cfg.batch_size = args.batch_size
     cfg.token = args.token

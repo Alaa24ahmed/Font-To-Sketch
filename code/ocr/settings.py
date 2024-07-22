@@ -3,6 +3,8 @@ from typing import Dict, Optional
 from dotenv import find_dotenv
 from pydantic import computed_field
 from pydantic_settings import BaseSettings
+# from pydantic import BaseSettings
+
 import torch
 import os
 

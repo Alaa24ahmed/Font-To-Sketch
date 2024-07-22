@@ -26,8 +26,9 @@ reload(bezier)
 def fix_single_svg(svg_path, output_path, all_word=False, letters=None):
     print("*********")
     print(letters)
+    print(all_word)
     if(all_word):
-        target_h_letter = 460
+        target_h_letter = 360
     elif(letters):
         if(len(letters) == 1):
             target_h_letter = 1000
@@ -175,13 +176,17 @@ def font_string_to_beziers(svg_path, txt, target_control=None):
         new_d = path_to_cubics(commands)
         # Check number of control points if desired
         if target_control is not None:
-            if letter in target_control.keys():
+            if ((type(target_control) == int) or (letter in target_control.keys())):
                 commands = parse_path(new_d)
                 nctrl = len(commands)
                 print("letter", letter)
                 print("target_control[letter]", target_control[letter])
                 print("nctrl", nctrl)
-                while nctrl < target_control[letter]:
+                if((type(target_control) == int)):
+                    target_control_letter = target_control
+                else:
+                    target_control_letter = target_control[letter]
+                while nctrl < target_control_letter:
                     longest = np.max([segment.length() for segment in commands])
                     thresh = longest * 0.5
                     new_d = increase_cp(commands, thresh=thresh)

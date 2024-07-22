@@ -170,37 +170,63 @@ class SDSLoss(nn.Module):
         
 
 class ToneLoss(nn.Module):
+
     def __init__(self, cfg):
         super(ToneLoss, self).__init__()
         self.dist_loss_weight = cfg.loss.tone.dist_loss_weight
         self.im_init = None
         self.cfg = cfg
         self.mse_loss = nn.MSELoss()
-        self.blurrer = torchvision.transforms.GaussianBlur(
-            kernel_size=(
-                cfg.loss.tone.pixel_dist_kernel_blur,
-                cfg.loss.tone.pixel_dist_kernel_blur,
-            ),
-            sigma=(cfg.loss.tone.pixel_dist_sigma),
-        )
+        self.blurrer = torchvision.transforms.GaussianBlur(kernel_size=(cfg.loss.tone.pixel_dist_kernel_blur,
+                                                                        cfg.loss.tone.pixel_dist_kernel_blur), sigma=(cfg.loss.tone.pixel_dist_sigma))
 
     def set_image_init(self, im_init):
         self.im_init = im_init.permute(2, 0, 1).unsqueeze(0)
         self.init_blurred = self.blurrer(self.im_init)
-        # self.init_blurred = self.im_init
+
 
     def get_scheduler(self, step=None):
         if step is not None:
-            return self.dist_loss_weight * np.exp(-(1 / 5) * ((step - 300) / (20)) ** 2)
+            return self.dist_loss_weight * np.exp(-(1/5)*((step-300)/(20)) ** 2)
         else:
             return self.dist_loss_weight
 
     def forward(self, cur_raster, step=None):
         blurred_cur = self.blurrer(cur_raster)
-        self.eval()
-        return self.mse_loss(
-            self.init_blurred.detach(), blurred_cur
-        ) * self.get_scheduler(step)
+        return self.mse_loss(self.init_blurred.detach(), blurred_cur) * self.get_scheduler(step)
+
+
+    # def __init__(self, cfg):
+    #     super(ToneLoss, self).__init__()
+    #     self.dist_loss_weight = cfg.loss.tone.dist_loss_weight
+    #     self.im_init = None
+    #     self.cfg = cfg
+    #     self.mse_loss = nn.MSELoss()
+    #     self.blurrer = torchvision.transforms.GaussianBlur(
+    #         kernel_size=(
+    #             cfg.loss.tone.pixel_dist_kernel_blur,
+    #             cfg.loss.tone.pixel_dist_kernel_blur,
+    #         ),
+    #         sigma=(cfg.loss.tone.pixel_dist_sigma),
+    #     )
+
+    # def set_image_init(self, im_init):
+    #     self.im_init = im_init.permute(2, 0, 1).unsqueeze(0)
+    #     self.init_blurred = self.blurrer(self.im_init)
+    #     # self.init_blurred = self.im_init
+
+    # def get_scheduler(self, step=None):
+    #     if step is not None:
+    #         return self.dist_loss_weight * np.exp(-(1 / 5) * ((step - 300) / (20)) ** 2)
+    #     else:
+    #         return self.dist_loss_weight
+
+    # def forward(self, cur_raster, step=None):
+    #     blurred_cur = self.blurrer(cur_raster)
+    #     self.eval()
+    #     return self.mse_loss(
+    #         self.init_blurred.detach(), blurred_cur
+    #     ) * self.get_scheduler(step)
 
 
 class ConformalLoss:

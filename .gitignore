@@ -1,6 +1,10 @@
 *.pyc
 .DS_Store
 output
+output_1
+output_2
+output_clip_draw
+output_concepts
 diffvg
 code/data/init
 code/data/arabic-fonts/*.ttf

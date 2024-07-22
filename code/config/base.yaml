@@ -39,7 +39,7 @@ default:
       use_tone_loss: false
       dist_loss_weight: 100
       pixel_dist_kernel_blur: 201
-      pixel_dist_sigma: 60
+      pixel_dist_sigma: 30
     conformal:
       use_conformal_loss: false
       angeles_w: 0.5

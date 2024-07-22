@@ -115,8 +115,8 @@ if __name__ == "__main__":
     ) * (1 - img_init[:, :, 3:4])
     img_init = img_init[:, :, :3]
 
-    if cfg.use_ocr_loss:
-        ocr_loss =OcrLoss(img_init)
+    # if cfg.use_ocr_loss:
+    ocr_loss =OcrLoss(img_init)
 
     if cfg.loss.use_sds_loss :
         sds_loss = SDSLoss(cfg, device)
@@ -144,7 +144,7 @@ if __name__ == "__main__":
         wandb.log({"init": wandb.Image(plt)}, step=0)
         plt.close()
 
-    if cfg.loss.tone.use_tone_loss:
+    if cfg.use_tone_loss:
         print("initializing tone loss")
         tone_loss = ToneLoss(cfg)
         tone_loss.set_image_init(img_init)
@@ -162,7 +162,8 @@ if __name__ == "__main__":
     pg = [{"params": parameters["point"], "lr": cfg.lr_base["point"]}]
     optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
 
-    if cfg.loss.conformal.use_conformal_loss:
+    # if cfg.loss.conformal.use_conformal_loss:
+    if cfg.use_conformal_loss:
         print("initializing conformal loss")
         conformal_loss = ConformalLoss(
             cfg, parameters, device, cfg.optimized_region, shape_groups
@@ -185,7 +186,7 @@ if __name__ == "__main__":
     )
 
     scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1)
-
+    print(cfg.caption)
     print("start training")
     # training loop
     t_range = tqdm(range(num_iter))
@@ -237,9 +238,11 @@ if __name__ == "__main__":
             print(f"tone loss: {tone_loss_res}")
             loss = loss + tone_loss_res
 
-        if cfg.loss.conformal.use_conformal_loss:
+        # if cfg.loss.conformal.use_conformal_loss:
+        if cfg.use_conformal_loss:
             loss_angles = conformal_loss()
-            loss_angles = cfg.loss.conformal.angeles_w * loss_angles
+            # loss_angles = cfg.loss.conformal.angeles_w * loss_angles
+            loss_angles = cfg.conformal_loss_weight * loss_angles
             print(f"loss_angles: {loss_angles}")
             loss = loss + loss_angles
 
@@ -294,14 +297,19 @@ if __name__ == "__main__":
                 wandb.log({"perceptual_loss": perceptual_loss_res.item()}, step=step)
             if cfg.use_ocr_loss and cfg.ocr_loss_weight > 0.0:
                 wandb.log({"ocr_loss": loss_ocr.item()}, step=step)
+            clip_score = CLipScoring(cfg, device)
+            clip_score_res = clip_score.get_loss(x, cfg.caption)
+            readability_score = 1 - loss_ocr.item()
+            wandb.log({"clip_score": clip_score_res, "readability_score": readability_score}, step=step)
         
         t_range.set_postfix({"loss": loss.item()})
         print(f"loss: {loss}")
         print(f"loss_item: {loss.item()}")
-
+        torch.cuda.empty_cache()
         loss.backward()
         optim.step()
         scheduler.step()
+        torch.cuda.empty_cache()
 
     filename = os.path.join(cfg.experiment_dir, "output-svg", "output.svg")
     check_and_create_dir(filename)
@@ -323,10 +331,12 @@ if __name__ == "__main__":
         pydiffvg.imwrite(imshow, filename, gamma=gamma)
 
     if(cfg.ranking_score):
-        ocr_score = OcrScoring(cfg, device)
-        image = Image.open( f"{cfg.experiment_dir}/{cfg.font}_{cfg.word}_{cfg.optimized_region}.png")
+        # ocr_score = OcrScoring(cfg, device)
+        # image = Image.open( f"{cfg.experiment_dir}/{cfg.font}_{cfg.word}_{cfg.optimized_region}.png")
         print("hereeee")
-        ocr_score_res = ocr_score.get_score(image)
+        ocr_score_res = ocr_loss(x) * 1
+
+        # ocr_score_res = ocr_score.get_score(image)
         print(f"ocr score: {ocr_score_res}")
         clip_score = CLipScoring(cfg, device)
         clip_score_res = clip_score.get_loss(x, cfg.caption)
@@ -335,9 +345,20 @@ if __name__ == "__main__":
         with open(f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_clip_score.txt", 'a', encoding="utf-8") as file:
             file.write(str(cfg.optimized_region) + " " + str(clip_score_res) + '\n')
         with open(f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_ocr_score.txt", 'a', encoding="utf-8") as file:
-            file.write(str(cfg.optimized_region) + " " + str(ocr_score_res) + '\n')
+            file.write(str(cfg.optimized_region) + " " + str(ocr_score_res.item()) + '\n')
+        
 
-    
+
+    ocr_score = OcrScoring(cfg, device)
+    image = Image.open( f"{cfg.experiment_dir}/{cfg.font}_{cfg.word}_{cfg.optimized_region}.png")
+    ocr_score_res = ocr_score.get_score(image)
+    print(f"ocr score: {ocr_score_res}")
+    clip_score = CLipScoring(cfg, device)
+    clip_score_res = clip_score.get_loss(x, cfg.caption)
+    print(f"clip score: {clip_score_res}")
+
+
+
     if cfg.use_wandb:    
         img_path = f"{cfg.experiment_dir}/{cfg.font}_{cfg.word}_{cfg.optimized_region}.png"
         pil_im = Image.open(img_path)
@@ -349,6 +370,7 @@ if __name__ == "__main__":
         if cfg.save.video:
             print("saving video")
             create_video(cfg.num_iter, cfg.experiment_dir, cfg.save.video_frame_freq)
+        
 
     if cfg.use_wandb:
         wandb.finish()

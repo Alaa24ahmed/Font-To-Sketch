@@ -13,6 +13,18 @@ import numpy as np
 warnings.filterwarnings("ignore")
 from glob import glob
 import re
+import openai
+
+openai.api_key = 'YOUR_API_KEY'
+
+def find_concept(prompt, model="gpt-3.5-turbo"):
+
+    response = openai.ChatCompletion.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    concept = response.choices[0].message['content']
+    return concept
 
 def parse_ocr_line(line):
     match = re.match(r'(\[.*?\])\s\(\[(.*?)\],\s\[(.*?)\]\)', line)
@@ -79,9 +91,23 @@ def parse_args():
         default=0
     )
 
+    parser.add_argument(
+        "--use_conformal_loss",
+        type=int,
+        default=0
+    )
+    
+    parser.add_argument(
+        "--use_tone_loss",
+        type=int,
+        default=0
+    )
 
     parser.add_argument(
         "--content_loss_weight", type=float, default=0.001, help="content loss weight"
+    )
+    parser.add_argument(
+        "--conformal_loss_weight", type=float, default=0.0, help="conformal loss weight"
     )
     parser.add_argument(
         "--style_loss_weight", type=float, default=0.000, help="style loss weight"
@@ -102,6 +128,8 @@ def parse_args():
     parser.add_argument("--ranking_num_iter", type=int, default=1)
     parser.add_argument("--ranking", type=int, default=0)
 
+    parser.add_argument("--handle_abstract_concept", type=int, default=0)
+
 
     cfg = edict()
     args = parser.parse_args()
@@ -112,13 +140,43 @@ def parse_args():
     cfg.experiment = args.experiment
     cfg.seed = args.seed
     cfg.font = args.font
-    cfg.semantic_concept = args.semantic_concept
+    cfg.handle_abstract_concept = args.handle_abstract_concept
+
+    if cfg.handle_abstract_concept:
+        prompt = f"""
+You will be given a concept word, and your task is to imagine this word as an art element. Describe the elements you would include to convey the essence of the concept word. Your description should list exactly three key symbols in a single line, formatted like this: symbol1 or symbol2 or symbol3.
+
+Examples:
+
+Concept word: 'freedom'
+Task: Imagine 'freedom' as an art element. Describe the elements you would include to convey freedom, listing exactly three key symbols in a single line.
+Response: Wings or open book or flying birds.
+
+Concept word: 'Knowledge'
+Task: Imagine 'Knowledge' as an art element. Describe the elements you would include to convey Knowledge, listing exactly three key symbols in a single line.
+Response: Open book or lightbulb or owl.
+
+Concept word: 'egypt'
+Task: Imagine 'egypt' as an art element. Describe the elements you would include to convey egypt, listing exactly three key symbols in a single line.
+Response: Pyramids or Ankh or Sphinx.
+
+Your task:
+Concept word: '{args.semantic_concept}'
+Task: Imagine '{args.semantic_concept}' as an art element. Describe the elements you would include to convey {args.semantic_concept}, listing exactly three key symbols in a single line.
+Response:
+"""
+        cfg.semantic_concept = find_concept(prompt)
+    else:
+        cfg.semantic_concept = args.semantic_concept
+
     cfg.word = cfg.semantic_concept if args.word == "none" else args.word
     cfg.letter = cfg.word
     cfg.script = args.script
     cfg.use_nst_loss = args.use_nst_loss
     cfg.use_perceptual_loss =  args.use_perceptual_loss
     cfg.use_ocr_loss =  args.use_ocr_loss
+    cfg.use_conformal_loss =  args.use_conformal_loss
+    cfg.use_tone_loss = args.use_tone_loss
 
     cfg.ranking_score = args.ranking_score
     cfg.ranking_num_iter = args.ranking_num_iter
@@ -156,9 +214,12 @@ def parse_args():
         ocr_score_file = f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_ocr_score.txt"
         with open(ocr_score_file, "r") as file:
             for line in file:
-                indices, ocr_word, ocr_score = parse_ocr_line(line)
+                indices, ocr_score = parse_clip_line(line)
                 if indices:
-                    ocr_data[indices] = {'ocr_word': ocr_word, 'ocr_score': ocr_score}
+                    ocr_data[indices] = -1 * ocr_score
+                # indices, ocr_word, ocr_score = parse_ocr_line(line)
+                # if indices:
+                #     ocr_data[indices] = {'ocr_word': ocr_word, 'ocr_score': ocr_score}
 
         print(f"OCR Data: {ocr_data}")
         print(f"Clip Data: {clip_data}")
@@ -166,31 +227,45 @@ def parse_args():
         combined_scores = []
         for indices in ocr_data.keys():
             if indices in clip_data:
-                total_score = ocr_data[indices]['ocr_score'] + clip_data[indices]
-                combined_scores.append((indices, ocr_data[indices]['ocr_word'], total_score))
+                total_score = ocr_data[indices] + clip_data[indices]
+                combined_scores.append((indices, total_score))
 
         # Sort the combined scores based on the total score
-        sorted_combined_scores = sorted(combined_scores, key=lambda x: x[2], reverse=True)
+        sorted_combined_scores = sorted(combined_scores, key=lambda x: x[1], reverse=True)
 
         # Print the sorted combined scores
-        for indices, ocr_word, total_score in sorted_combined_scores:
-            print(f"Indices: {indices}, Total Score: {total_score}")
+        # full_result_file = f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_combined.txt"
+        # with open(clip_score_file, "r") as file:
+        #     for indices, ocr_word, total_score in sorted_combined_scores:
+        #         print(f"Indices: {indices}, Total Score: {total_score}")
+
+        full_result_file = f"{cfg.log_dir}/ranking/{cfg.font}_{cfg.word}_combined.txt"
+        with open(full_result_file, "w") as file:
+            for indices, total_score in sorted_combined_scores:
+                file.write(f"Indices: {indices}, Total Score: {total_score}\n")
 
         if sorted_combined_scores:
-            indices, ocr_word, total_score = sorted_combined_scores[0]
+            indices, total_score = sorted_combined_scores[0]
         optimized_region = indices
 
     optimized_range = list(map(int, optimized_region.strip("[]").split(",")))
+    optimized_range = [optimized_range[0], optimized_range[-1]]
+    print(optimized_range)  
     if len(optimized_range) == 1:
         optimized_range.append(optimized_range[0])
     assert len(optimized_range) == 2
     cfg.optimized_region = list(range(optimized_range[0], optimized_range[1] + 1))
+    print("config: ", cfg.optimized_region)
     optimized_region_name = "".join([str(elem) for elem in cfg.optimized_region])
 
     # cfg.content_loss_weight = 0.001*len(cfg.optimized_region)
     cfg.content_loss_weight = args.content_loss_weight
+    cfg.conformal_loss_weight = args.conformal_loss_weight
     cfg.perceptual_loss_weight = args.perceptual_loss_weight
-    cfg.ocr_loss_weight = args.ocr_loss_weight
+
+    # cfg.ocr_loss_weight = args.ocr_loss_weight
+    cfg.ocr_loss_weight = 0.5*len(cfg.optimized_region)
+    # cfg.ocr_loss_weight = 0.5
 
     cfg.batch_size = args.batch_size
     cfg.token = args.token
@@ -221,7 +296,8 @@ def set_config():
     for options in reversed(cfgs):
         update(cfg, options)
     del cfgs
-
+    # cfg.loss.conformal.angeles_w = cfg.conformal_loss_weight
+    
     # set experiment dir
     cfg.signature = (
     f"{cfg.experiment_name}"
@@ -230,7 +306,8 @@ def set_config():
     f"{'_perceptual_loss_' + str(cfg.perceptual_loss_weight) if cfg.use_perceptual_loss else ''}"
     f"{'_content_loss_' + str(cfg.content_loss_weight) if cfg.use_nst_loss else ''}"
     f"{'_useblurNST_' + str(cfg.use_blurrer_in_nst) if cfg.use_blurrer_in_nst else ''}"
-    f"{'_angels_loss_' + str(cfg.loss.conformal.angeles_w) if cfg.loss.conformal.use_conformal_loss else ''}"
+    f"{'_angels_loss_' + str(cfg.conformal_loss_weight) if cfg.use_conformal_loss else ''}"
+    # f"{'_angels_loss_' + str(cfg.loss.conformal.angeles_w) if cfg.loss.conformal.use_conformal_loss else ''}"
 
     )
 
@@ -245,7 +322,7 @@ def set_config():
 
     if cfg.use_wandb:
         wandb.init(
-            project="Word as image",
+            project="losses_experiemnts",
             entity=cfg.wandb_user,
             name=f"{cfg.semantic_concept}_{cfg.seed}_{cfg.signature}",
             id=wandb.util.generate_id(),

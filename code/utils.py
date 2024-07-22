@@ -141,10 +141,23 @@ def preprocess(font, word, letters, experiment_name, script, level_of_cc=1):
                 "ة": 60,
             }
         if(target_cp):
-            target_cp = {k: v * level_of_cc for k, v in target_cp.items() } if target_cp else None
+            target_cp = {k: v * level_of_cc for k, v in target_cp.items() } if target_cp else 100 * level_of_cc
 
     print(f"======= {font} =======")
-    font_path = f"code/data/fonts/{script}/{font}.ttf"
+    # font_path = f"code/data/fonts/{script}/{font}.ttf"
+
+        # Define the path for the TTF and OTF files
+    ttf_path = f"code/data/fonts/{script}/{font}.ttf"
+    otf_path = f"code/data/fonts/{script}/{font}.otf"
+
+    # Check if the TTF file exists; if not, use the OTF file
+    if os.path.exists(ttf_path):
+        font_path = ttf_path
+    elif os.path.exists(otf_path):
+        font_path = otf_path
+    else:
+        raise FileNotFoundError("Neither TTF nor OTF font files were found.")
+
     init_path = f"code/data/init"
     subdivision_thresh = None
 

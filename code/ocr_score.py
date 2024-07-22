@@ -38,6 +38,105 @@ import torch.nn.functional as F
 from surya_ocr.surya.settings import settings
 from surya_ocr.surya.schema import TextLine, OCRResult
 
+
+CODE_TO_LANGUAGE = {
+    'af': 'afrikaans',
+    'am': 'amharic',
+    'ar': 'arabic',
+    'as': 'assamese',
+    'az': 'azerbaijani',
+    'be': 'belarusian',
+    'bg': 'bulgarian',
+    'bn': 'bengali',
+    'br': 'breton',
+    'bs': 'bosnian',
+    'ca': 'catalan',
+    'cs': 'czech',
+    'cy': 'welsh',
+    'da': 'danish',
+    'de': 'german',
+    'el': 'greek',
+    'en': 'english',
+    'eo': 'esperanto',
+    'es': 'spanish',
+    'et': 'estonian',
+    'eu': 'basque',
+    'fa': 'persian',
+    'fi': 'finnish',
+    'fr': 'french',
+    'fy': 'western frisian',
+    'ga': 'irish',
+    'gd': 'scottish gaelic',
+    'gl': 'galician',
+    'gu': 'gujarati',
+    'ha': 'hausa',
+    'he': 'hebrew',
+    'hi': 'hindi',
+    'hr': 'croatian',
+    'hu': 'hungarian',
+    'hy': 'armenian',
+    'id': 'indonesian',
+    'is': 'icelandic',
+    'it': 'italian',
+    'ja': 'japanese',
+    'jv': 'javanese',
+    'ka': 'georgian',
+    'kk': 'kazakh',
+    'km': 'khmer',
+    'kn': 'kannada',
+    'ko': 'korean',
+    'ku': 'kurdish',
+    'ky': 'kyrgyz',
+    'la': 'latin',
+    'lo': 'lao',
+    'lt': 'lithuanian',
+    'lv': 'latvian',
+    'mg': 'malagasy',
+    'mk': 'macedonian',
+    'ml': 'malayalam',
+    'mn': 'mongolian',
+    'mr': 'marathi',
+    'ms': 'malay',
+    'my': 'burmese',
+    'ne': 'nepali',
+    'nl': 'dutch',
+    'no': 'norwegian',
+    'om': 'oromo',
+    'or': 'oriya',
+    'pa': 'punjabi',
+    'pl': 'polish',
+    'ps': 'pashto',
+    'pt': 'portuguese',
+    'ro': 'romanian',
+    'ru': 'russian',
+    'sa': 'sanskrit',
+    'sd': 'sindhi',
+    'si': 'sinhala',
+    'sk': 'slovak',
+    'sl': 'slovenian',
+    'so': 'somali',
+    'sq': 'albanian',
+    'sr': 'serbian',
+    'su': 'sundanese',
+    'sv': 'swedish',
+    'sw': 'swahili',
+    'ta': 'tamil',
+    'te': 'telugu',
+    'th': 'thai',
+    'tl': 'tagalog',
+    'tr': 'turkish',
+    'ug': 'uyghur',
+    'uk': 'ukrainian',
+    'ur': 'urdu',
+    'uz': 'uzbek',
+    'vi': 'vietnamese',
+    'xh': 'xhosa',
+    'yi': 'yiddish',
+    'zh': 'chinese',
+}
+
+LANGUAGE_TO_CODE = {v: k for k, v in CODE_TO_LANGUAGE.items()}
+
 class OcrScoring(nn.Module):    
     def __init__(self, cfg, device): 
         super(OcrScoring, self).__init__()
@@ -131,12 +230,14 @@ class OcrScoring(nn.Module):
 
 
     def recognize_image(self, image: Image.Image, rec_model, rec_processor, batch_size=None) -> List[OCRResult]:
-        all_langs = [["ar"]] 
+        all_langs=[[LANGUAGE_TO_CODE[self.cfg.script]]]
+        print(all_langs)
         return self.batch_recognition([image], all_langs, self.rec_model, self.rec_processor, batch_size=batch_size)
 
     def get_score(self, image):
         # self.image = image.permute(2, 0, 1).unsqueeze(0)
         ocr_score_res = self.recognize_image(image, self.rec_model, self.rec_processor)
         detected_text, confidence_score = ocr_score_res
+        print(detected_text)
         return detected_text, confidence_score
         # score = confidence_score - 

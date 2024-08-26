@@ -180,12 +180,14 @@ def font_string_to_beziers(svg_path, txt, target_control=None):
                 commands = parse_path(new_d)
                 nctrl = len(commands)
                 print("letter", letter)
-                print("target_control[letter]", target_control[letter])
                 print("nctrl", nctrl)
                 if((type(target_control) == int)):
                     target_control_letter = target_control
+                    print("hereeeeee")
                 else:
                     target_control_letter = target_control[letter]
+                print("target_control[letter]", target_control_letter)
+                
                 while nctrl < target_control_letter:
                     longest = np.max([segment.length() for segment in commands])
                     thresh = longest * 0.5

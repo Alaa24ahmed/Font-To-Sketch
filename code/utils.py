@@ -140,8 +140,8 @@ def preprocess(font, word, letters, experiment_name, script, level_of_cc=1):
                 "ي": 100,
                 "ة": 60,
             }
-        if(target_cp):
-            target_cp = {k: v * level_of_cc for k, v in target_cp.items() } if target_cp else 100 * level_of_cc
+        # if(target_cp):
+        target_cp = {k: v * level_of_cc for k, v in target_cp.items() } if target_cp else 120 * level_of_cc
 
     print(f"======= {font} =======")
     # font_path = f"code/data/fonts/{script}/{font}.ttf"

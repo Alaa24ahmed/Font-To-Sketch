@@ -322,7 +322,7 @@ def set_config():
 
     if cfg.use_wandb:
         wandb.init(
-            project="losses_experiemnts",
+            project="losses_graph_experiemnts",
             entity=cfg.wandb_user,
             name=f"{cfg.semantic_concept}_{cfg.seed}_{cfg.signature}",
             id=wandb.util.generate_id(),

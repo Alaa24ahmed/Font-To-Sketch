@@ -244,7 +244,10 @@ if __name__ == "__main__":
             # loss_angles = cfg.loss.conformal.angeles_w * loss_angles
             loss_angles = cfg.conformal_loss_weight * loss_angles
             print(f"loss_angles: {loss_angles}")
-            loss = loss + loss_angles
+            if(not torch.isnan(loss_angles)):
+                print("here")
+                print(type(loss_angles))
+                loss = loss + loss_angles
 
         if(cfg.use_perceptual_loss):
 
@@ -299,8 +302,9 @@ if __name__ == "__main__":
                 wandb.log({"ocr_loss": loss_ocr.item()}, step=step)
             clip_score = CLipScoring(cfg, device)
             clip_score_res = clip_score.get_loss(x, cfg.caption)
-            readability_score = 1 - loss_ocr.item()
-            wandb.log({"clip_score": clip_score_res, "readability_score": readability_score}, step=step)
+            ocr_loss_graph = ocr_loss(x).item()
+            # readability_score = 1 - loss_ocr.item()
+            wandb.log({"clip_score": clip_score_res, "ocr_loss_graph": ocr_loss_graph}, step=step)
         
         t_range.set_postfix({"loss": loss.item()})
         print(f"loss: {loss}")

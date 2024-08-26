@@ -295,6 +295,8 @@ if osp.isdir(f'/home/ahmed.sharshar/Desktop/Alaa/Font-To-Sketch/output_clip_draw
 else:
     os.makedirs(f'/home/ahmed.sharshar/Desktop/Alaa/Font-To-Sketch/output_clip_draw/{concept}/')
 
+ocr_loss =OcrLoss(img_init)
+
 # Run the main optimization loop
 for t in range(args.num_iter):
 
@@ -334,6 +336,14 @@ for t in range(args.num_iter):
         if use_negative:
             loss += torch.cosine_similarity(text_features_neg1, image_features[n:n+1], dim=1) * 0.3
             loss += torch.cosine_similarity(text_features_neg2, image_features[n:n+1], dim=1) * 0.3
+
+
+    if cfg.use_wandb:
+        clip_score = CLipScoring(cfg, device)
+        clip_score_res = clip_score.get_loss(img, cfg.caption)
+        ocr_loss_graph = ocr_loss(img).item()
+        # readability_score = 1 - loss_ocr.item()
+        wandb.log({"clip_score": clip_score_res, "ocr_loss_graph": ocr_loss_graph}, step=t)
 
     # Backpropagate the gradients.
     loss.backward()
